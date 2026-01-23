@@ -12,17 +12,23 @@
 
 ## 2. Get Database Connection String
 
-1. In your Supabase dashboard, go to **Project Settings** (gear icon)
-2. Go to **Database** tab
-3. Scroll to **Connection String**
-4. Select **URI** tab
-5. Copy the connection string (looks like):
+1. Go to your **Supabase Project Dashboard**.
+2. Click the green **"Connect"** button in the top right corner.
+3. In the modal that opens, select **"ORMs"**.
+4. Select **"Supabase (Python)"** or just look for the **URI** tab.
+5. Copy the connection string. It should look like this:
    ```
-   postgresql://postgres:[YOUR-PASSWORD]@db.xxxxx.supabase.co:5432/postgres
+   postgresql://postgres.xxxxx:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
    ```
-6. Replace `[YOUR-PASSWORD]` with your database password
+6. **Important:** Replace `[YOUR-PASSWORD]` with the password you created in step 1.
 
-## 3. Configure Backend
+## 3. Get API Credentials (Optional)
+
+1. Go to **Project Settings** (Gear icon at the bottom of the left sidebar).
+2. Click on **"API"** in the list.
+3. Find **Project URL** and **anon public key**.
+
+## 4. Configure Backend
 
 1. Copy `.env.example` to `.env`:
    ```bash
