@@ -3,19 +3,19 @@ Vercel Serverless Function: User Login
 POST /api/login
 """
 
-from http.server import BaseHTTPRequestHandler
-import json
+from flask import Flask, request, jsonify
 import os
 import hashlib
 from datetime import datetime, timedelta
 
-from supabase import create_client, Client
+app = Flask(__name__)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 JWT_SECRET = os.getenv("JWT_SECRET_KEY", "farmflow-secret")
 
-def get_supabase() -> Client:
+def get_supabase():
+    from supabase import create_client
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def verify_password(plain: str, hashed: str) -> bool:
@@ -34,68 +34,42 @@ def create_jwt(user_id: int) -> str:
     }
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
-class handler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        try:
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length)
-            data = json.loads(body)
-            
-            email = data.get("email")
-            password = data.get("password")
-            
-            if not email or not password:
-                self.send_response(400)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({"detail": "Missing email or password"}).encode())
-                return
-            
-            supabase = get_supabase()
-            
-            # Find user
-            result = supabase.table("users").select("*").eq("email", email).execute()
-            
-            if not result.data:
-                self.send_response(401)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({"detail": "Invalid email or password"}).encode())
-                return
-            
-            user = result.data[0]
-            
-            if not verify_password(password, user["hashed_password"]):
-                self.send_response(401)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({"detail": "Invalid email or password"}).encode())
-                return
-            
-            token = create_jwt(user["id"])
-            
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps({
-                "access_token": token,
-                "token_type": "bearer"
-            }).encode())
-                
-        except Exception as e:
-            self.send_response(500)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps({"detail": str(e)}).encode())
+@app.route('/api/login', methods=['POST', 'OPTIONS'])
+def handler():
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response, 200
     
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-        self.end_headers()
+    try:
+        data = request.get_json()
+        email = data.get("email")
+        password = data.get("password")
+        
+        if not email or not password:
+            return jsonify({"detail": "Missing email or password"}), 400
+        
+        supabase = get_supabase()
+        result = supabase.table("users").select("*").eq("email", email).execute()
+        
+        if not result.data:
+            return jsonify({"detail": "Invalid email or password"}), 401
+        
+        user = result.data[0]
+        
+        if not verify_password(password, user["hashed_password"]):
+            return jsonify({"detail": "Invalid email or password"}), 401
+        
+        token = create_jwt(user["id"])
+        
+        response = jsonify({
+            "access_token": token,
+            "token_type": "bearer"
+        })
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 200
+            
+    except Exception as e:
+        return jsonify({"detail": str(e)}), 500

@@ -3,18 +3,17 @@ Vercel Serverless Function: Get Current User
 GET /api/me
 """
 
-from http.server import BaseHTTPRequestHandler
-import json
+from flask import Flask, request, jsonify
 import os
-from datetime import datetime
 
-from supabase import create_client, Client
+app = Flask(__name__)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY", "")
 JWT_SECRET = os.getenv("JWT_SECRET_KEY", "farmflow-secret")
 
-def get_supabase() -> Client:
+def get_supabase():
+    from supabase import create_client
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def decode_jwt(token: str):
@@ -25,59 +24,36 @@ def decode_jwt(token: str):
     except:
         return None
 
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        try:
-            auth_header = self.headers.get('Authorization', '')
-            
-            if not auth_header.startswith('Bearer '):
-                self.send_response(401)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({"detail": "Missing authorization"}).encode())
-                return
-            
-            token = auth_header.replace('Bearer ', '')
-            user_id = decode_jwt(token)
-            
-            if not user_id:
-                self.send_response(401)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({"detail": "Invalid token"}).encode())
-                return
-            
-            supabase = get_supabase()
-            result = supabase.table("users").select("id, email, name, created_at").eq("id", user_id).execute()
-            
-            if not result.data:
-                self.send_response(404)
-                self.send_header('Content-Type', 'application/json')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(json.dumps({"detail": "User not found"}).encode())
-                return
-            
-            user = result.data[0]
-            
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps(user).encode())
-                
-        except Exception as e:
-            self.send_response(500)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.end_headers()
-            self.wfile.write(json.dumps({"detail": str(e)}).encode())
+@app.route('/api/me', methods=['GET', 'OPTIONS'])
+def handler():
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response, 200
     
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-        self.end_headers()
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        
+        if not auth_header.startswith('Bearer '):
+            return jsonify({"detail": "Missing authorization"}), 401
+        
+        token = auth_header.replace('Bearer ', '')
+        user_id = decode_jwt(token)
+        
+        if not user_id:
+            return jsonify({"detail": "Invalid token"}), 401
+        
+        supabase = get_supabase()
+        result = supabase.table("users").select("id, email, name, created_at").eq("id", user_id).execute()
+        
+        if not result.data:
+            return jsonify({"detail": "User not found"}), 404
+        
+        response = jsonify(result.data[0])
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        return response, 200
+            
+    except Exception as e:
+        return jsonify({"detail": str(e)}), 500
