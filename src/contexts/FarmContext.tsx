@@ -88,8 +88,8 @@ interface FarmContextType {
 
 const FarmContext = createContext<FarmContextType | undefined>(undefined);
 
-// Backend API URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Backend API URL - empty for Vercel serverless (same domain)
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export const FarmProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { token, isAuthenticated, user } = useAuth();

@@ -18,8 +18,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Backend API URL - change this for production
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Backend API URL - empty for Vercel serverless (same domain)
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
