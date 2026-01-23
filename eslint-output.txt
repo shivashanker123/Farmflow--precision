@@ -1,0 +1,62 @@
+﻿
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\farm\ChatWidget.tsx
+  39:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  61:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  61:82  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  69:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\farm\SoilMoistureGauge.tsx
+  56:6  warning  React Hook useEffect has a missing dependency: 'displayAngle'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\farm\SwipeToIrrigate.tsx
+  52:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\ui\ProgressiveLoader.tsx
+  72:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\ui\TiltCard.tsx
+  115:41  error  React Hook "useTransform" is called conditionally. React Hooks must be called in the exact same order in every component render  react-hooks/rules-of-hooks
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\ui\badge.tsx
+  29:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\ui\button.tsx
+  47:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\ui\command.tsx
+  24:11  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\ui\form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\ui\navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\ui\sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\ui\sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\ui\textarea.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\components\ui\toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\contexts\FarmContext.tsx
+  245:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\pages\Dashboard.tsx
+  84:6  warning  React Hook useEffect has missing dependencies: 'setDataSource' and 'updateSensorData'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\src\vite-env.d.ts
+  41:1  error  Unexpected var, use let or const instead  no-var
+  46:1  error  Unexpected var, use let or const instead  no-var
+
+C:\Users\santo\OneDrive\Desktop\copy\farmflow-precision\tailwind.config.ts
+  101:13  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+Γ£û 22 problems (11 errors, 11 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+
