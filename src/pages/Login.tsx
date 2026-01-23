@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { isSetupComplete, completeFarmSetup } from useFarm();
+  const { isSetupComplete, completeFarmSetup } = useFarm();
   const { login, register, isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [showWizard, setShowWizard] = useState(false);
