@@ -119,6 +119,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const logout = () => {
         localStorage.removeItem('farmflow_token');
+        localStorage.removeItem('farmflow_setup_complete');
         setToken(null);
         setUser(null);
     };

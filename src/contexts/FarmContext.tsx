@@ -94,9 +94,22 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 export const FarmProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { token, isAuthenticated, user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [isSetupComplete, setIsSetupComplete] = useState(false);
+  // Initialize from localStorage to prevent redirect loops
+  const [isSetupComplete, setIsSetupCompleteState] = useState(() => {
+    return localStorage.getItem('farmflow_setup_complete') === 'true';
+  });
   const [farmData, setFarmData] = useState<FarmData>(DEFAULT_FARM_DATA);
-  const [syncTimeout, setSyncTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [syncTimeout, setSyncTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  // Wrapper to persist setup complete state
+  const setIsSetupComplete = (value: boolean) => {
+    setIsSetupCompleteState(value);
+    if (value) {
+      localStorage.setItem('farmflow_setup_complete', 'true');
+    } else {
+      localStorage.removeItem('farmflow_setup_complete');
+    }
+  };
 
   // Fetch farm data from backend when authenticated
   useEffect(() => {
