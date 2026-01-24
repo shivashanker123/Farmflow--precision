@@ -30,12 +30,15 @@ class handler(BaseHTTPRequestHandler):
                 user_id = payload.get("sub")
                 print(f"Decoded user_id: {user_id}")
             except jwt.ExpiredSignatureError:
+                print("ERROR: Token expired")
                 self._send_json({"detail": "Token expired"}, 401)
                 return
             except jwt.InvalidTokenError as e:
+                print(f"ERROR: Invalid token - {str(e)}")
                 self._send_json({"detail": f"Invalid token: {str(e)}"}, 401)
                 return
             except Exception as e:
+                print(f"ERROR: General exception - {str(e)}")
                 self._send_json({"detail": f"Token error: {str(e)}"}, 401)
                 return
             
