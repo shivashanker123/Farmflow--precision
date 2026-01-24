@@ -160,8 +160,9 @@ export const FarmProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           espIP: data.esp_ip,
           rainExpected: data.rain_expected,
         }));
-        // If farm has been configured (field size > 0 and crop type set), mark as complete
-        setIsSetupComplete(data.field_size > 0);
+        // If farm has been configured (field size > 0 AND crop type is set), mark as complete
+        const isConfigured = data.field_size > 0 && data.crop_type && data.crop_type !== '';
+        setIsSetupComplete(isConfigured);
       }
     } catch (error) {
       console.error('Failed to fetch farm data:', error);

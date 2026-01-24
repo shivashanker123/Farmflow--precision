@@ -55,8 +55,12 @@ class handler(BaseHTTPRequestHandler):
             user = result.data[0] if result.data else None
             
             if user:
-                # Create default farm settings
-                supabase.table("farm_settings").insert({"user_id": user["id"]}).execute()
+                # Create farm settings with field_size=0 (setup not complete)
+                supabase.table("farm_settings").insert({
+                    "user_id": user["id"],
+                    "field_size": 0,  # Will trigger setup wizard
+                    "crop_type": ""   # Empty means not configured
+                }).execute()
                 
                 self._send_json({
                     "id": user["id"],
