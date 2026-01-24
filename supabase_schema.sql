@@ -42,10 +42,20 @@ CREATE TABLE IF NOT EXISTS usage_logs (
     action TEXT
 );
 
+-- Chat messages table for AI conversation history
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL,  -- 'user' or 'assistant'
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Enable Row Level Security (optional but recommended)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE farm_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usage_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 
 -- Create policies to allow our serverless functions to access data
 -- (Using service role key bypasses RLS, so this is for future frontend direct access)
