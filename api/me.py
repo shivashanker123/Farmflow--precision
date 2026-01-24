@@ -25,8 +25,14 @@ class handler(BaseHTTPRequestHandler):
             try:
                 payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
                 user_id = payload.get("sub")
-            except:
-                self._send_json({"detail": "Invalid token"}, 401)
+            except jwt.ExpiredSignatureError:
+                self._send_json({"detail": "Token expired"}, 401)
+                return
+            except jwt.InvalidTokenError as e:
+                self._send_json({"detail": f"Invalid token: {str(e)}"}, 401)
+                return
+            except Exception as e:
+                self._send_json({"detail": f"Token error: {str(e)}"}, 401)
                 return
             
             from supabase import create_client
