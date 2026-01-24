@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Droplets,
@@ -15,6 +15,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useFarm } from '@/contexts/FarmContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardSidebarProps {
   isOpen: boolean;
@@ -31,7 +32,14 @@ const navItems = [
 
 const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ isOpen, onToggle }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { farmData } = useFarm();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   // Minimized state for desktop
   const [isMinimized, setIsMinimized] = useState(false);
@@ -193,10 +201,10 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ isOpen, onToggle })
               )}
             </AnimatePresence>
           </div>
-          <Link
-            to="/"
+          <button
+            onClick={handleLogout}
             title={isMinimized ? 'Logout' : undefined}
-            className={`flex items-center gap-3 px-3 py-3 mt-2 rounded-xl text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive transition-all ${isMinimized ? 'justify-center' : ''}`}
+            className={`flex items-center gap-3 px-3 py-3 mt-2 rounded-xl text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive transition-all w-full ${isMinimized ? 'justify-center' : ''}`}
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <AnimatePresence mode="wait">
@@ -212,7 +220,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ isOpen, onToggle })
                 </motion.span>
               )}
             </AnimatePresence>
-          </Link>
+          </button>
         </div>
       </motion.aside>
     </>
