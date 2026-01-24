@@ -13,18 +13,22 @@ class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             auth_header = self.headers.get('Authorization', '')
+            print(f"Auth header received: {auth_header[:50]}..." if len(auth_header) > 50 else f"Auth header: {auth_header}")
             
             if not auth_header.startswith('Bearer '):
                 self._send_json({"detail": "Missing authorization"}, 401)
                 return
             
             token = auth_header.replace('Bearer ', '')
+            print(f"Token length: {len(token)}")
             
             import jwt
             jwt_secret = os.getenv("JWT_SECRET_KEY", "farmflow-secret")
+            print(f"JWT secret (first 10 chars): {jwt_secret[:10]}...")
             try:
                 payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
                 user_id = payload.get("sub")
+                print(f"Decoded user_id: {user_id}")
             except jwt.ExpiredSignatureError:
                 self._send_json({"detail": "Token expired"}, 401)
                 return
