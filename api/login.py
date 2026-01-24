@@ -54,7 +54,7 @@ class handler(BaseHTTPRequestHandler):
             import jwt
             jwt_secret = os.getenv("JWT_SECRET_KEY", "farmflow-secret")
             token = jwt.encode({
-                "sub": user["id"],
+                "sub": str(user["id"]),  # Convert to string for PyJWT
                 "exp": datetime.utcnow() + timedelta(days=7)
             }, jwt_secret, algorithm="HS256")
             

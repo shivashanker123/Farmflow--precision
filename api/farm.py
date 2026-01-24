@@ -35,12 +35,12 @@ class handler(BaseHTTPRequestHandler):
             supabase_key = os.getenv("SUPABASE_ANON_KEY", "")
             supabase = create_client(supabase_url, supabase_key)
             
-            result = supabase.table("farm_settings").select("*").eq("user_id", user_id).execute()
+            result = supabase.table("farm_settings").select("*").eq("user_id", int(user_id)).execute()
             
             if result.data:
                 self._send_json(result.data[0], 200)
             else:
-                default = {"user_id": user_id, "crop_type": "corn", "field_size": 10}
+                default = {"user_id": int(user_id), "crop_type": "corn", "field_size": 10}
                 supabase.table("farm_settings").insert(default).execute()
                 self._send_json(default, 200)
                 
@@ -63,7 +63,7 @@ class handler(BaseHTTPRequestHandler):
             supabase_key = os.getenv("SUPABASE_ANON_KEY", "")
             supabase = create_client(supabase_url, supabase_key)
             
-            result = supabase.table("farm_settings").update(data).eq("user_id", user_id).execute()
+            result = supabase.table("farm_settings").update(data).eq("user_id", int(user_id)).execute()
             self._send_json(result.data[0] if result.data else data, 200)
                 
         except Exception as e:

@@ -47,7 +47,8 @@ class handler(BaseHTTPRequestHandler):
             supabase_key = os.getenv("SUPABASE_ANON_KEY", "")
             supabase = create_client(supabase_url, supabase_key)
             
-            result = supabase.table("users").select("id, email, name, created_at").eq("id", user_id).execute()
+            # user_id is a string from JWT, convert to int for query
+            result = supabase.table("users").select("id, email, name, created_at").eq("id", int(user_id)).execute()
             
             if not result.data:
                 self._send_json({"detail": "User not found"}, 404)
