@@ -58,12 +58,16 @@ class handler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_length)
             data = json.loads(body) if body else {}
             
+            print(f"PUT /api/farm - user_id: {user_id}")
+            print(f"PUT /api/farm - data: {data}")
+            
             from supabase import create_client
             supabase_url = os.getenv("SUPABASE_URL", "")
             supabase_key = os.getenv("SUPABASE_ANON_KEY", "")
             supabase = create_client(supabase_url, supabase_key)
             
             result = supabase.table("farm_settings").update(data).eq("user_id", int(user_id)).execute()
+            print(f"PUT /api/farm - result: {result.data}")
             self._send_json(result.data[0] if result.data else data, 200)
                 
         except Exception as e:
