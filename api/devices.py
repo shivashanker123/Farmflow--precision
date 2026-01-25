@@ -72,6 +72,7 @@ class handler(BaseHTTPRequestHandler):
             
             from supabase import create_client
             import uuid
+            import secrets
             
             supabase_url = os.getenv("SUPABASE_URL", "")
             supabase_key = os.getenv("SUPABASE_ANON_KEY", "")
@@ -79,11 +80,14 @@ class handler(BaseHTTPRequestHandler):
             
             # Generate UUID for the device
             device_id = str(uuid.uuid4())
+            # Generate a secure secret for device authentication
+            device_secret = secrets.token_urlsafe(16)
             
             device = {
                 "id": device_id,
                 "user_id": int(user_id),
-                "name": device_name
+                "name": device_name,
+                "secret": device_secret  # SECURITY: Device secret for authentication
             }
             
             result = supabase.table("devices").insert(device).execute()
@@ -91,7 +95,8 @@ class handler(BaseHTTPRequestHandler):
             if result.data:
                 self._send_json({
                     "device": result.data[0],
-                    "message": "Device registered successfully. Copy the device_id to your Arduino code."
+                    "secret": device_secret,  # Return secret to user (shown only once!)
+                    "message": "Device registered! Copy device_id AND secret to your Arduino code. Secret is shown only once!"
                 }, 201)
             else:
                 self._send_json({"detail": "Failed to create device"}, 500)

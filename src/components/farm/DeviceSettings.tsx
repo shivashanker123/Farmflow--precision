@@ -38,6 +38,7 @@ const DeviceSettings: React.FC<DeviceSettingsProps> = ({ onDeviceChange }) => {
     const [showRegisterForm, setShowRegisterForm] = useState(false);
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [newlyCreatedDevice, setNewlyCreatedDevice] = useState<Device | null>(null);
+    const [newlyCreatedSecret, setNewlyCreatedSecret] = useState<string | null>(null);
 
     useEffect(() => {
         if (token) {
@@ -78,6 +79,7 @@ const DeviceSettings: React.FC<DeviceSettingsProps> = ({ onDeviceChange }) => {
             if (response.ok) {
                 const data = await response.json();
                 setNewlyCreatedDevice(data.device);
+                setNewlyCreatedSecret(data.secret);  // Store secret (shown only once!)
                 setDevices(prev => [data.device, ...prev]);
                 setNewDeviceName('');
                 setShowRegisterForm(false);
@@ -224,10 +226,16 @@ const DeviceSettings: React.FC<DeviceSettingsProps> = ({ onDeviceChange }) => {
                                     <p className="text-xs text-muted-foreground mb-2">Arduino Code:</p>
                                     <pre className="text-xs font-mono overflow-x-auto">
                                         {`const char* deviceId = "${newlyCreatedDevice.id}";
+const char* deviceSecret = "${newlyCreatedSecret || 'YOUR_SECRET'}";
 const char* ingestUrl = 
   "https://dathehackathonthingy.vercel.app/api/ingest";`}
                                     </pre>
                                 </div>
+                                {newlyCreatedSecret && (
+                                    <div className="mt-3 p-2 bg-warning/10 rounded-lg border border-warning/30">
+                                        <p className="text-xs text-warning font-medium">⚠️ Save this secret now! It won't be shown again.</p>
+                                    </div>
+                                )}
                                 <Button
                                     size="sm"
                                     variant="ghost"

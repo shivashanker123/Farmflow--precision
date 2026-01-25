@@ -1,3 +1,15 @@
+# Environment variables (SECURITY CRITICAL)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Python
+__pycache__/
+*.pyc
+venv/
+
 # Logs
 logs
 *.log

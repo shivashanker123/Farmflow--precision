@@ -309,13 +309,34 @@ export const FarmProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     scheduleSync();
   };
 
+  // SAFETY CONSTANTS
+  const PUMP_SAFETY = {
+    maxDurationHours: 1,      // Max 1 hour continuous operation
+    cooldownMinutes: 15,      // 15 min cooldown between cycles
+  };
+
   const isPumpLocked = (): { locked: boolean; reason: string | null } => {
+    // Safety: Max moisture threshold
     if (farmData.soilMoisture > 80) {
-      return { locked: true, reason: 'Moisture levels optimal' };
+      return { locked: true, reason: 'Moisture levels optimal (>80%)' };
     }
+
+    // Safety: Rain expected
     if (farmData.rainExpected) {
-      return { locked: true, reason: 'Rain expected' };
+      return { locked: true, reason: 'Rain expected - irrigation not needed' };
     }
+
+    // Safety: Max pump duration exceeded
+    if (farmData.pumpRunTime >= PUMP_SAFETY.maxDurationHours) {
+      return { locked: true, reason: `Max pump duration reached (${PUMP_SAFETY.maxDurationHours}h). Allow cooldown.` };
+    }
+
+    // Safety: Water budget critically low
+    const budgetStatus = getWaterBudgetStatus();
+    if (budgetStatus === 'low' && farmData.soilMoisture > 40) {
+      return { locked: true, reason: 'Water budget low - conserving for critical need' };
+    }
+
     return { locked: false, reason: null };
   };
 

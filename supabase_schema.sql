@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS devices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name TEXT NOT NULL DEFAULT 'Soil Sensor',
+    secret TEXT DEFAULT gen_random_uuid()::text,  -- SECURITY: Device authentication secret
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
