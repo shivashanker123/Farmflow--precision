@@ -51,11 +51,33 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- IoT Devices table (owned by users)
+CREATE TABLE IF NOT EXISTS devices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL DEFAULT 'Soil Sensor',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Sensor readings table (from ESP8266 devices)
+CREATE TABLE IF NOT EXISTS sensor_readings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    device_id UUID NOT NULL REFERENCES devices(id) ON DELETE CASCADE,
+    soil_moisture INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Indexes for faster queries
+CREATE INDEX IF NOT EXISTS idx_readings_device ON sensor_readings(device_id);
+CREATE INDEX IF NOT EXISTS idx_readings_time ON sensor_readings(created_at);
+
 -- Enable Row Level Security (optional but recommended)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE farm_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usage_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE devices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sensor_readings ENABLE ROW LEVEL SECURITY;
 
 -- Create policies to allow our serverless functions to access data
 -- (Using service role key bypasses RLS, so this is for future frontend direct access)
@@ -63,3 +85,6 @@ CREATE POLICY "Users can read own data" ON users FOR SELECT USING (true);
 CREATE POLICY "Users can insert" ON users FOR INSERT WITH CHECK (true);
 CREATE POLICY "Farm settings access" ON farm_settings FOR ALL USING (true);
 CREATE POLICY "Usage logs access" ON usage_logs FOR ALL USING (true);
+CREATE POLICY "Devices access" ON devices FOR ALL USING (true);
+CREATE POLICY "Sensor readings access" ON sensor_readings FOR ALL USING (true);
+

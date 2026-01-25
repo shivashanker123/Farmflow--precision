@@ -2,12 +2,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useFarm } from '@/contexts/FarmContext';
-import { 
-  Wifi, 
-  WifiOff, 
-  Battery, 
-  Radio, 
-  Signal, 
+import {
+  Wifi,
+  WifiOff,
+  Battery,
+  Radio,
+  Signal,
   ThermometerSun,
   RefreshCcw,
   Settings as SettingsIcon,
@@ -18,6 +18,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import DeviceSettingsComponent from '@/components/farm/DeviceSettings';
+import SensorGraph from '@/components/farm/SensorGraph';
 
 const DeviceSettings = () => {
   const { farmData, toggleSensorOnline, updateSoilMoisture } = useFarm();
@@ -41,8 +43,27 @@ const DeviceSettings = () => {
         >
           <h1 className="text-3xl font-display font-bold text-foreground">Device Settings</h1>
           <p className="text-muted-foreground mt-1">
-            Manage your single ground-truth sensor
+            Manage your IoT sensors and ground-truth data sources
           </p>
+        </motion.div>
+
+        {/* IoT Device Registration */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          className="glass-card p-6"
+        >
+          <DeviceSettingsComponent />
+        </motion.div>
+
+        {/* Sensor Readings Graph */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <SensorGraph />
         </motion.div>
 
         {/* Primary Sensor Card */}
@@ -54,9 +75,8 @@ const DeviceSettings = () => {
         >
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-                farmData.sensorOnline ? 'bg-success/10' : 'bg-destructive/10'
-              }`}>
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${farmData.sensorOnline ? 'bg-success/10' : 'bg-destructive/10'
+                }`}>
                 {farmData.sensorOnline ? (
                   <Wifi className="w-8 h-8 text-success" />
                 ) : (
@@ -70,16 +90,14 @@ const DeviceSettings = () => {
                 <p className="text-muted-foreground">Ground Truth Data Source</p>
               </div>
             </div>
-            
+
             {/* Large Status Indicator */}
-            <div className={`px-6 py-3 rounded-full flex items-center gap-2 ${
-              farmData.sensorOnline 
-                ? 'bg-success/10 text-success' 
-                : 'bg-destructive/10 text-destructive'
-            }`}>
-              <div className={`w-3 h-3 rounded-full ${
-                farmData.sensorOnline ? 'bg-success animate-pulse-gentle' : 'bg-destructive'
-              }`} />
+            <div className={`px-6 py-3 rounded-full flex items-center gap-2 ${farmData.sensorOnline
+              ? 'bg-success/10 text-success'
+              : 'bg-destructive/10 text-destructive'
+              }`}>
+              <div className={`w-3 h-3 rounded-full ${farmData.sensorOnline ? 'bg-success animate-pulse-gentle' : 'bg-destructive'
+                }`} />
               <span className="font-bold text-lg">
                 {farmData.sensorOnline ? 'ONLINE' : 'OFFLINE'}
               </span>
@@ -98,9 +116,8 @@ const DeviceSettings = () => {
                 {[1, 2, 3, 4, 5].map((bar) => (
                   <div
                     key={bar}
-                    className={`w-2 rounded-full ${
-                      bar <= 4 ? 'bg-success' : 'bg-muted'
-                    }`}
+                    className={`w-2 rounded-full ${bar <= 4 ? 'bg-success' : 'bg-muted'
+                      }`}
                     style={{ height: `${bar * 4 + 8}px` }}
                   />
                 ))}
@@ -138,9 +155,8 @@ const DeviceSettings = () => {
           </div>
 
           {/* Confidence Level */}
-          <div className={`rounded-xl p-4 mb-6 ${
-            farmData.sensorOnline ? 'bg-success/10' : 'bg-warning/10'
-          }`}>
+          <div className={`rounded-xl p-4 mb-6 ${farmData.sensorOnline ? 'bg-success/10' : 'bg-warning/10'
+            }`}>
             <div className="flex items-center gap-3">
               {farmData.sensorOnline ? (
                 <CheckCircle className="w-6 h-6 text-success" />
@@ -152,7 +168,7 @@ const DeviceSettings = () => {
                   Confidence Level: {farmData.sensorOnline ? 'High' : 'Low (Fallback Mode)'}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {farmData.sensorOnline 
+                  {farmData.sensorOnline
                     ? 'Sensor readings match water model formula ✓'
                     : 'Using historical data backup - readings may be less accurate'
                   }
