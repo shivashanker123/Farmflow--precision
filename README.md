@@ -1,73 +1,130 @@
-# Water Budget–Based Smart Irrigation System
+# FarmFlow Precision - AI-Driven Intelligent Irrigation System 🌾💧
 
-> "We use one sensor for ground truth and water budgeting for intelligence."
+![Status](https://img.shields.io/badge/Status-Beta-blue)
+![Backend](https://img.shields.io/badge/Backend-Serverless%20Python-yellow)
+![Database](https://img.shields.io/badge/Database-Supabase-green)
+![IoT](https://img.shields.io/badge/IoT-ESP8266-orange)
 
-## 🔹 Introduction
-Farmers often waste water due to fixed irrigation schedules and a lack of planning based on available water. Existing sensor-heavy systems are costly and complex.
+FarmFlow is a precision agriculture platform that combines IoT sensor data, AI-driven weather analysis, and water budgeting to optimize irrigation. It features a modern React dashboard, serverless Python backend, and secure IoT integration.
 
-**FarmFlow Precision** solves this by using **only one soil moisture sensor** combined with intelligent **water budgeting logic** to decide exactly when and how much to irrigate. This ensures optimal water usage, validating "Ground Truth" with the sensor and using "Water Budgeting" for intelligence.
+---
 
-## 🔹 Core Features
+## 🚀 Key Features
 
-### 🧠 Intelligent Decision Logic
-*   **If Soil is DRY & Water Budget Available** → Irrigate normally.
-*   **If Soil is DRY & Water Budget is LOW** → Irrigate partially.
-*   **If Soil is MOIST** → Skip irrigation.
+### 🧠 Intelligent Irrigation
+- **Water Budgeting**: Tracks daily/seasonal water usage against borewell/tank capacity
+- **AI Consultant**: Built-in LLM chat (Llama 3.3) for agronomy advice
+- **Smart Recommendations**: Traffic-light system for irrigation decisions (Full/Partial/Skip)
+- **Pump Safety**: Auto-shutoff for rain, max duration, or high moisture
 
-### 📊 Dashboard Insights
-*   Current soil moisture status (Dry / Optimal / Wet)
-*   Remaining water for the season
-*   Estimated days of irrigation left
-*   Water saved by skipping unnecessary irrigation
+### 📡 IoT Connectivity
+- **ESP8266/ESP32 Integration**: Secure HTTPS data ingestion
+- **Live Monitoring**: Real-time soil moisture visualization
+- **Device Management**: Register/manage multiple sensors via dashboard
+- **Fail-Safe Mode**: Manual overrides if sensors fail
 
-### 🌾 Inputs Taken
-*   Crop type & attributes (Knowledge base of water requirements)
-*   Land area
-*   Water source capacity (Tank/Borewell)
-*   Crop duration
+### 💻 Modern Tech Stack
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, Framer Motion
+- **Backend**: Vercel Serverless Functions (Python)
+- **Database**: Supabase (PostgreSQL + RLS Security)
+- **Auth**: JWT-based secure authentication
 
-## 🛠️ Hardware Requirements
-*   1× Soil moisture sensor (Representative field area)
-*   1× Microcontroller (ESP32 / Arduino)
-*   1× Relay (optional for pump control)
-*   Pump (for demonstration)
+---
 
-## 🚀 Getting Started
+## 🏗️ Architecture
 
-Follow these instructions to get the project running on your local machine.
-
-### Prerequisites
-Ensure you have **Node.js** and **npm** installed.
-
-### Installation
-
-1.  **Clone the repository:**
-    ```bash
-    git clone <repository-url>
-    cd farmflow-precision
-    ```
-
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-
-### Running the Project
-
-Start the development server:
-
-```bash
-npm run dev
+```mermaid
+graph TD
+    User[Farmer] -->|HTTPS| Frontend[React Dashboard]
+    Frontend -->|REST API| Backend[Vercel Serverless APIs]
+    
+    Backend -->|Read/Write| DB[(Supabase DB)]
+    
+    Sensor[ESP8266 Device] -->|HTTPS POST| Ingest[/api/ingest/]
+    Ingest -->|Validate & Store| DB
+    
+    Backend -->|Chat| AI[Groq Llama 3]
 ```
 
-Open your browser and navigate to the URL shown in the terminal (usually `http://localhost:8080` or `http://localhost:5173`).
+### API Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/register` | User registration |
+| `POST` | `/api/login` | JWT login |
+| `GET` | `/api/farm` | Fetch farm usage stats |
+| `POST` | `/api/chat` | AI Agronomist chat |
+| `POST` | `/api/ingest` | **IoT Data Ingestion** (Rate limited) |
+| `GET` | `/api/devices` | List registered sensors |
 
-## 🔹 Advantages
-*   **Low Cost**: Uses minimum hardware (1 sensor).
-*   **Reliable**: Works even if the sensor fails (can fall back to logic).
-*   **Scalable**: Suitable for small farmers and easy to upgrade.
+---
 
-## 🔹 Future Scope
-*   Integration with weather prediction APIs.
-*   AI-based optimization for crop yields.
-*   Support for multiple sensors per field.
+## 🛠️ Setup & Deployment
+
+### 1. Prerequisites
+- Node.js 18+
+- Python 3.9+
+- Supabase Account
+- Vercel Account
+- Groq API Key (for AI chat)
+
+### 2. Environment Variables (.env)
+```env
+# Backend (Vercel)
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+JWT_SECRET_KEY=your_secure_secret
+GROQ_API_KEY=your_groq_key
+ALLOWED_ORIGINS=https://your-app.vercel.app
+
+# Frontend (.env.local)
+VITE_API_URL=/api  # Points to Vercel functions
+```
+
+### 3. Database Setup (Supabase)
+Run the SQL from `supabase_schema.sql` in your Supabase SQL Editor. This will create:
+- `users`, `farm_settings`, `usage_logs`
+- `devices`, `sensor_readings` (IoT)
+- Row Level Security (RLS) policies
+
+### 4. Running Locally
+```bash
+# Frontend
+npm install
+npm run dev
+
+# Backend (requires Vercel CLI)
+vercel dev
+```
+
+---
+
+## 🔌 IoT Device Setup (ESP8266)
+
+1. Go to **Device Settings** in the dashboard.
+2. Click **Register Device**.
+3. Copy the generated `deviceId` and `deviceSecret`.
+4. Flash your ESP8266 with the following config:
+
+```cpp
+const char* ssid = "YOUR_WIFI";
+const char* password = "YOUR_PASS";
+
+// From FarmFlow Dashboard
+const char* deviceId = "your-device-uuid";
+const char* deviceSecret = "your-device-secret";
+const char* ingestUrl = "https://your-app.vercel.app/api/ingest";
+```
+
+---
+
+## 🔒 Security Measures
+- **Rate Limiting**: IoT ingestion limited to 1 reading/5s per device
+- **Input Validation**: Strict type & range checking (0-1023 moisture)
+- **Device Secrets**: Secondary authentication token for sensors
+- **Pump Safety**: 1-hour max run time + 15m cooldown
+- **CORS**: Restricted to frontend domain
+
+---
+
+## 📜 License
+MIT License. Built for Smart India Hackathon.
