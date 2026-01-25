@@ -126,5 +126,3 @@ const char* ingestUrl = "https://your-app.vercel.app/api/ingest";
 
 ---
 
-## 📜 License
-MIT License. Built for Smart India Hackathon.
