@@ -13,6 +13,11 @@ import SwipeToIrrigate from '@/components/farm/SwipeToIrrigate';
 import DataSourceBadge from '@/components/farm/DataSourceBadge';
 import MotorControlCard from '@/components/farm/MotorControlCard';
 import SensorCard from '@/components/farm/SensorCard';
+// NEW: Smart Irrigation Components
+import AdvisoryPanel from '@/components/farm/AdvisoryPanel';
+import CropStageIndicator from '@/components/farm/CropStageIndicator';
+import SmartRecommendationCard from '@/components/farm/SmartRecommendationCard';
+import RainfallButton from '@/components/farm/RainfallButton';
 import { useFarm } from '@/contexts/FarmContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useESP32Data, ESP32_CONFIG } from '@/hooks/useESP32Data';
@@ -44,10 +49,24 @@ const Dashboard = () => {
     setRainExpected,
     setEspIP,
     isPumpLocked,
+    // NEW: Smart irrigation functions
+    getSmartRecommendation,
+    getCropStage,
+    getStressTolerance,
+    getActiveAdvisories,
+    getSeasonalBudget,
+    recordRainfall,
+    logIrrigationEvent,
   } = useFarm();
 
   const recommendation = getRecommendation();
-  const cropDay = 45; // Simulated crop day
+  // NEW: Smart recommendation with graduated percentages
+  const smartRecommendation = getSmartRecommendation();
+  const cropStage = getCropStage();
+  const stressTolerance = getStressTolerance();
+  const advisories = getActiveAdvisories();
+  const seasonalBudget = getSeasonalBudget();
+  const cropDay = seasonalBudget.daysRemaining;
   const pumpLockStatus = isPumpLocked();
 
   // ESP32 integration
@@ -766,11 +785,47 @@ const Dashboard = () => {
               isLive={stableIsLive}
             />
 
-            {/* Swipe to Irrigate */}
+            {/* NEW: Smart Recommendation Card */}
+            <SmartRecommendationCard
+              recommendation={smartRecommendation}
+              onAccept={() => {
+                togglePump();
+                logIrrigationEvent(
+                  smartRecommendation.intensity === 100 ? 'full' :
+                    smartRecommendation.intensity > 0 ? 'partial' : 'skip',
+                  smartRecommendation.volume
+                );
+              }}
+              isManualOverride={farmData.manualOverrideActive}
+            />
+
+            {/* NEW: Crop Stage Indicator */}
+            <CropStageIndicator
+              currentStage={cropStage}
+              stressTolerance={stressTolerance}
+              daysRemaining={cropDay}
+              cropType={farmData.cropType}
+            />
+
+            {/* NEW: Advisory Panel */}
+            <AdvisoryPanel
+              advisories={advisories}
+              maxVisible={3}
+            />
+
+            {/* Swipe to Irrigate (kept for quick action) */}
             <SwipeToIrrigate
               onActivate={togglePump}
               isActive={farmData.pumpActive}
             />
+
+            {/* NEW: Rainfall Button */}
+            <div className="flex justify-end">
+              <RainfallButton
+                onRecordRainfall={recordRainfall}
+                todayRainfall={farmData.rainfallToday}
+              />
+            </div>
 
             {/* Live Sensor Status */}
             <div className="glass-card p-6 hover-lift">
