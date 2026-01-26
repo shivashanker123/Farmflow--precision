@@ -62,6 +62,29 @@ class FarmSettings(Base):
     esp_ip = Column(String, default="192.168.4.1")
     rain_expected = Column(Boolean, default=False)
     
+    # ===== NEW: Smart Irrigation Fields =====
+    
+    # Crop Lifecycle
+    crop_duration = Column(Integer, default=90)  # Days from sowing to harvest
+    crop_start_date = Column(DateTime(timezone=True))  # When crop was planted
+    today_water_used = Column(Float, default=0.0)  # Daily usage (resets daily)
+    
+    # Sensor Health
+    last_sensor_reading = Column(DateTime(timezone=True))  # For health check
+    sensor_health = Column(String, default="healthy")  # healthy/stale/failed
+    manual_override_active = Column(Boolean, default=False)  # Farmer override
+    
+    # Rainfall Tracking
+    rainfall_today = Column(Float, default=0.0)  # mm recorded today
+    last_rainfall_date = Column(DateTime(timezone=True))  # Last rain date
+    rainfall_credited = Column(Float, default=0.0)  # mm credited to budget
+    
+    # Impact Tracking
+    total_water_saved = Column(Float, default=0.0)  # Cumulative savings
+    skipped_irrigation_count = Column(Integer, default=0)  # Skip decisions
+    deficit_irrigation_count = Column(Integer, default=0)  # Partial irrigations
+    full_irrigation_count = Column(Integer, default=0)  # Full irrigations
+    
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
     # Relationships
