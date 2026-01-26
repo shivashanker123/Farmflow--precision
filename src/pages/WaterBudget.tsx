@@ -4,17 +4,39 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import WaterTankVisualization from '@/components/farm/WaterTankVisualization';
 import BorewellMonitor from '@/components/farm/BorewellMonitor';
 import { useFarm } from '@/contexts/FarmContext';
-import { TrendingUp, Droplets, Target } from 'lucide-react';
+import { TrendingUp, Droplets, Target, Calendar, Leaf, AlertTriangle, Check } from 'lucide-react';
 
 const WaterBudget = () => {
-  const { farmData, getWaterBudgetStatus, getRemainingDays, getTotalPumped } = useFarm();
+  /**
+   * WATER BUDGET PAGE
+   * 
+   * Displays seasonal water budget using getSeasonalBudget()
+   * Shows crop cycle progress, daily quota, and on-track status
+   * 
+   * INTEGRATION: Uses new smart irrigation functions from FarmContext
+   */
+  const {
+    farmData,
+    getWaterBudgetStatus,
+    getRemainingDays,
+    getTotalPumped,
+    // NEW: Smart irrigation functions
+    getSeasonalBudget,
+    getCropStage,
+    getImpactMetrics,
+  } = useFarm();
 
   const budgetStatus = getWaterBudgetStatus();
   const isBorewell = farmData.irrigationSource === 'borewell';
 
+  // NEW: Get seasonal budget breakdown
+  const seasonalBudget = getSeasonalBudget();
+  const cropStage = getCropStage();
+  const impactMetrics = getImpactMetrics();
+
   // Calculate values based on irrigation source
   const remaining = isBorewell
-    ? 0 // Borewell doesn't have remaining
+    ? seasonalBudget.remaining // Use seasonal budget for borewell too
     : farmData.tankCapacity - farmData.usedWater;
 
   const totalUsed = isBorewell ? getTotalPumped() : farmData.usedWater;
@@ -22,12 +44,15 @@ const WaterBudget = () => {
     ? (farmData.pumpRunTime / 8) * 100 // Based on 8hr max daily runtime
     : (farmData.usedWater / farmData.tankCapacity) * 100;
 
-  // Calculate savings (simulated - compared to traditional irrigation)
-  const traditionalUsage = totalUsed * 1.4; // 40% more water traditionally
-  const waterSaved = traditionalUsage - totalUsed;
-  const efficiencyScore = Math.min(100, Math.round((1 - (totalUsed / traditionalUsage)) * 100 + 50));
+  // NEW: Use real impact metrics instead of simulated
+  const waterSaved = impactMetrics.waterSavedLiters;
+  const efficiencyScore = Math.min(100, 50 + impactMetrics.waterSavedPercent);
 
   const getBudgetMessage = () => {
+    // NEW: Use seasonal on-track status
+    if (!seasonalBudget.onTrack) {
+      return '⚠️ Over Budget - Reduce Usage';
+    }
     if (isBorewell) {
       if (budgetStatus === 'high') return '✓ Efficient Pumping';
       if (budgetStatus === 'medium') return '⚡ Moderate Usage';
@@ -77,7 +102,89 @@ const WaterBudget = () => {
                 {isBorewell ? 'Efficiency Score' : 'Days Remaining'}
               </p>
               <p className="text-3xl font-display font-bold text-foreground">
-                {isBorewell ? `${efficiencyScore}%` : getRemainingDays()}
+                {isBorewell ? `${efficiencyScore}%` : seasonalBudget.daysRemaining}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* NEW: Seasonal Budget Breakdown */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="glass-card p-6 hover-lift"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-lg text-foreground">
+                  Seasonal Budget
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Crop cycle: {farmData.cropType} ({seasonalBudget.daysRemaining} days left)
+                </p>
+              </div>
+            </div>
+
+            {/* On-track badge */}
+            <div className={`
+              px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1
+              ${seasonalBudget.onTrack
+                ? 'bg-green-500/10 text-green-500'
+                : 'bg-amber-500/10 text-amber-500'
+              }
+            `}>
+              {seasonalBudget.onTrack
+                ? <><Check className="w-3 h-3" /> On Track</>
+                : <><AlertTriangle className="w-3 h-3" /> Over Budget</>
+              }
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="space-y-2 mb-6">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Water Used</span>
+              <span className="font-medium text-foreground">
+                {(seasonalBudget.used / 1000).toFixed(1)} / {(seasonalBudget.totalAvailable / 1000).toFixed(1)} kL
+              </span>
+            </div>
+            <div className="h-3 bg-muted/50 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, (seasonalBudget.used / seasonalBudget.totalAvailable) * 100)}%` }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+                className={`h-full rounded-full ${seasonalBudget.onTrack
+                    ? 'bg-gradient-to-r from-primary to-primary/70'
+                    : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                  }`}
+              />
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="p-3 rounded-xl bg-muted/30 text-center">
+              <p className="text-xs text-muted-foreground">Daily Quota</p>
+              <p className="text-lg font-bold text-foreground">
+                {(seasonalBudget.dailyQuota / 1000).toFixed(1)} kL
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-muted/30 text-center">
+              <p className="text-xs text-muted-foreground">Total Needed</p>
+              <p className="text-lg font-bold text-foreground">
+                {(seasonalBudget.totalNeeded / 1000).toFixed(0)} kL
+              </p>
+            </div>
+            <div className="p-3 rounded-xl bg-muted/30 text-center">
+              <p className="text-xs text-muted-foreground">Crop Stage</p>
+              <p className="text-lg font-bold text-foreground capitalize flex items-center justify-center gap-1">
+                <Leaf className="w-4 h-4 text-green-500" />
+                {cropStage}
               </p>
             </div>
           </div>
