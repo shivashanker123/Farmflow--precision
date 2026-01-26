@@ -6,7 +6,14 @@ import { useFarm } from '@/contexts/FarmContext';
 import ChatWidget from '@/components/farm/ChatWidget';
 
 const CropDoctor = () => {
-  const { farmData } = useFarm();
+  const { farmData, getCropStage, getSeasonalBudget } = useFarm();
+
+  // Get dynamic crop data
+  const cropStage = getCropStage();
+  const seasonalBudget = getSeasonalBudget();
+  const daysSincePlanting = seasonalBudget.totalNeeded > 0
+    ? farmData.cropDuration - seasonalBudget.daysRemaining
+    : 0;
 
   const getHealthStatus = () => {
     if (farmData.soilMoisture < 30) return 'critical';
@@ -68,15 +75,15 @@ const CropDoctor = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className={`glass-card p-8 hover-lift border-l-4 ${healthStatus === 'critical' ? 'border-l-destructive' :
-              healthStatus === 'warning' ? 'border-l-warning' : 'border-l-success'
+            healthStatus === 'warning' ? 'border-l-warning' : 'border-l-success'
             }`}
         >
           <div className="flex items-center gap-6">
             <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${healthStatus === 'critical' ? 'bg-destructive/10' :
-                healthStatus === 'warning' ? 'bg-warning/10' : 'bg-success/10'
+              healthStatus === 'warning' ? 'bg-warning/10' : 'bg-success/10'
               }`}>
               <Leaf className={`w-10 h-10 ${healthStatus === 'critical' ? 'text-destructive' :
-                  healthStatus === 'warning' ? 'text-warning' : 'text-success'
+                healthStatus === 'warning' ? 'text-warning' : 'text-success'
                 }`} />
             </div>
             <div>
@@ -133,7 +140,7 @@ const CropDoctor = () => {
           {[
             { title: 'Optimal Moisture Range', value: '50-70%', description: `Ideal for ${farmData.cropType}`, color: 'text-success' },
             { title: 'Daily Water Need', value: `${farmData.dailyWaterNeed} mm`, description: 'Based on crop type', color: 'text-blue-400' },
-            { title: 'Growth Stage', value: 'Day 45', description: 'Vegetative phase', color: 'text-amber-400' },
+            { title: 'Growth Stage', value: `Day ${daysSincePlanting}`, description: `${cropStage} phase`, color: 'text-amber-400' },
             { title: 'Next Action', value: healthStatus === 'healthy' ? 'Monitor' : 'Irrigate', description: 'Recommended action', color: healthStatus === 'healthy' ? 'text-green-400' : 'text-red-400' },
           ].map((tip, index) => (
             <motion.div

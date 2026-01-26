@@ -27,7 +27,8 @@ import WeatherIcon from '@/components/ui/WeatherIcon';
 import WeatherCard from '@/components/ui/WeatherCard';
 
 // WorldWeatherOnline API configuration
-const WEATHER_API_KEY = '6c18236020184628a3d121913261001';
+// SECURITY: API key should be in .env file as VITE_WEATHER_API_KEY
+const WEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY || '';
 const WEATHER_BASE_URL = 'https://api.worldweatheronline.com/premium/v1/weather.ashx';
 
 interface WeatherData {

@@ -422,6 +422,7 @@ export const FarmProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          // Core farm settings
           crop_type: farmData.cropType,
           field_size: farmData.fieldSize,
           tank_capacity: farmData.tankCapacity,
@@ -436,6 +437,27 @@ export const FarmProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           pump_run_time: farmData.pumpRunTime,
           esp_ip: farmData.espIP,
           rain_expected: farmData.rainExpected,
+
+          // NEW: Crop Lifecycle
+          crop_duration: farmData.cropDuration,
+          crop_start_date: farmData.cropStartDate,
+          today_water_used: farmData.todayWaterUsed,
+
+          // NEW: Sensor Health
+          last_sensor_reading: farmData.lastSensorReading,
+          sensor_health: farmData.sensorHealth,
+          manual_override_active: farmData.manualOverrideActive,
+
+          // NEW: Rainfall Tracking
+          rainfall_today: farmData.rainfallToday,
+          last_rainfall_date: farmData.lastRainfallDate,
+          rainfall_credited: farmData.rainfallCredited,
+
+          // NEW: Impact Tracking
+          total_water_saved: farmData.totalWaterSaved,
+          skipped_irrigation_count: farmData.skippedIrrigationCount,
+          deficit_irrigation_count: farmData.deficitIrrigationCount,
+          full_irrigation_count: farmData.fullIrrigationCount,
         }),
       });
     } catch (error) {
@@ -468,6 +490,9 @@ export const FarmProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       flowRate: params.flowRate || 5000,
       pumpRunTime: 0,
       usedWater: 0,
+      // NEW: Crop lifecycle from wizard
+      cropDuration: params.cropDuration || 90,
+      cropStartDate: params.cropStartDate || new Date().toISOString().split('T')[0],
     };
     setFarmData(newData);
     setIsSetupComplete(true);
@@ -491,6 +516,9 @@ export const FarmProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             irrigation_source: newData.irrigationSource,
             flow_rate: newData.flowRate,
             pump_run_time: newData.pumpRunTime,
+            // NEW: Crop lifecycle
+            crop_duration: newData.cropDuration,
+            crop_start_date: newData.cropStartDate,
           }),
         });
       } catch (error) {
