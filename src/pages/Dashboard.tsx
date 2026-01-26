@@ -18,6 +18,7 @@ import AdvisoryPanel from '@/components/farm/AdvisoryPanel';
 import CropStageIndicator from '@/components/farm/CropStageIndicator';
 import SmartRecommendationCard from '@/components/farm/SmartRecommendationCard';
 import RainfallButton from '@/components/farm/RainfallButton';
+import ImpactDashboard from '@/components/farm/ImpactDashboard';
 import { useFarm } from '@/contexts/FarmContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useESP32Data, ESP32_CONFIG } from '@/hooks/useESP32Data';
@@ -55,6 +56,7 @@ const Dashboard = () => {
     getStressTolerance,
     getActiveAdvisories,
     getSeasonalBudget,
+    getImpactMetrics,
     recordRainfall,
     logIrrigationEvent,
   } = useFarm();
@@ -66,6 +68,7 @@ const Dashboard = () => {
   const stressTolerance = getStressTolerance();
   const advisories = getActiveAdvisories();
   const seasonalBudget = getSeasonalBudget();
+  const impactMetrics = getImpactMetrics();
   const cropDay = seasonalBudget.daysRemaining;
   const pumpLockStatus = isPumpLocked();
 
@@ -826,6 +829,9 @@ const Dashboard = () => {
                 todayRainfall={farmData.rainfallToday}
               />
             </div>
+
+            {/* NEW: Impact Dashboard - Water Savings */}
+            <ImpactDashboard metrics={impactMetrics} />
 
             {/* Live Sensor Status */}
             <div className="glass-card p-6 hover-lift">
