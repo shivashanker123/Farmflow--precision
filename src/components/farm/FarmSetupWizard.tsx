@@ -16,6 +16,8 @@ interface FarmSetupWizardProps {
     irrigationSource: IrrigationSource;
     tankCapacity?: number;
     flowRate?: number;
+    cropDuration?: number;    // NEW: Days from sowing to harvest
+    cropStartDate?: string;   // NEW: ISO date string
   }) => void;
 }
 
@@ -46,14 +48,23 @@ const FarmSetupWizard: React.FC<FarmSetupWizardProps> = ({ onComplete }) => {
   const [irrigationSource, setIrrigationSource] = useState<IrrigationSource | ''>('');
   const [tankCapacity, setTankCapacity] = useState('');
   const [flowRate, setFlowRate] = useState('');
-  
+
+  // NEW: Crop season fields
+  /**
+   * CROP DURATION: Total days from sowing to harvest
+   * ASSUMPTION: Common values - wheat: 120, corn: 90, tomato: 75
+   * Pre-filled based on crop type selection
+   */
+  const [cropDuration, setCropDuration] = useState('');
+  const [cropStartDate, setCropStartDate] = useState('');
+
   // Bucket test calculator state
   const [calcMode, setCalcMode] = useState<'manual' | 'calculate'>('manual');
   const [containerVolume, setContainerVolume] = useState('');
   const [fillTime, setFillTime] = useState('');
 
-  const totalSteps = 6;
-  
+  const totalSteps = 7; // Increased from 6 to include crop season step
+
   // Calculate flow rate from bucket test
   const calculatedFlowRate = useMemo(() => {
     const volume = parseFloat(containerVolume);
@@ -88,6 +99,9 @@ const FarmSetupWizard: React.FC<FarmSetupWizardProps> = ({ onComplete }) => {
       irrigationSource: irrigationSource as IrrigationSource,
       tankCapacity: irrigationSource === 'tank' ? parseFloat(tankCapacity) || 50000 : undefined,
       flowRate: irrigationSource === 'borewell' ? parseFloat(flowRate) || 5000 : undefined,
+      // NEW: Crop season fields
+      cropDuration: parseInt(cropDuration) || 90,
+      cropStartDate: cropStartDate || new Date().toISOString().split('T')[0],
     });
   };
 
@@ -102,6 +116,8 @@ const FarmSetupWizard: React.FC<FarmSetupWizardProps> = ({ onComplete }) => {
         if (irrigationSource === 'tank') return tankCapacity !== '' && parseFloat(tankCapacity) > 0;
         if (irrigationSource === 'borewell') return flowRate !== '' && parseFloat(flowRate) > 0;
         return false;
+      // NEW: Crop season validation
+      case 7: return cropDuration !== '' && parseInt(cropDuration) > 0 && cropStartDate !== '';
       default: return false;
     }
   };
@@ -121,9 +137,8 @@ const FarmSetupWizard: React.FC<FarmSetupWizardProps> = ({ onComplete }) => {
           {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
             <div
               key={s}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                s === step ? 'w-8 bg-primary' : s < step ? 'w-2 bg-primary/60' : 'w-2 bg-muted'
-              }`}
+              className={`h-2 rounded-full transition-all duration-300 ${s === step ? 'w-8 bg-primary' : s < step ? 'w-2 bg-primary/60' : 'w-2 bg-muted'
+                }`}
             />
           ))}
         </div>
@@ -276,15 +291,13 @@ const FarmSetupWizard: React.FC<FarmSetupWizardProps> = ({ onComplete }) => {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setIrrigationSource(option.value as IrrigationSource)}
-                      className={`p-4 rounded-2xl border-2 transition-all ${
-                        irrigationSource === option.value
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border bg-card hover:border-primary/50'
-                      }`}
+                      className={`p-4 rounded-2xl border-2 transition-all ${irrigationSource === option.value
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border bg-card hover:border-primary/50'
+                        }`}
                     >
-                      <option.icon className={`w-8 h-8 mx-auto mb-2 ${
-                        irrigationSource === option.value ? 'text-primary' : 'text-muted-foreground'
-                      }`} />
+                      <option.icon className={`w-8 h-8 mx-auto mb-2 ${irrigationSource === option.value ? 'text-primary' : 'text-muted-foreground'
+                        }`} />
                       <p className="font-medium text-foreground">{option.label}</p>
                       <p className="text-xs text-muted-foreground mt-1">{option.description}</p>
                     </motion.button>
@@ -339,22 +352,20 @@ const FarmSetupWizard: React.FC<FarmSetupWizardProps> = ({ onComplete }) => {
                 <div className="flex gap-2 p-1 bg-muted/50 rounded-xl">
                   <button
                     onClick={() => setCalcMode('manual')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
-                      calcMode === 'manual'
-                        ? 'bg-card text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${calcMode === 'manual'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                      }`}
                   >
                     <PenLine className="w-4 h-4" />
                     Manual Entry
                   </button>
                   <button
                     onClick={() => setCalcMode('calculate')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
-                      calcMode === 'calculate'
-                        ? 'bg-card text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${calcMode === 'calculate'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                      }`}
                   >
                     <Calculator className="w-4 h-4" />
                     Calculate Rate
@@ -469,6 +480,100 @@ const FarmSetupWizard: React.FC<FarmSetupWizardProps> = ({ onComplete }) => {
               </div>
             )}
           </motion.div>
+        </AnimatePresence>
+
+        {/* Step 7: Crop Season - NEW */}
+        <AnimatePresence mode="wait">
+          {step === 7 && (
+            <motion.div
+              key="step7"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Wheat className="w-8 h-8 text-green-500" />
+                </div>
+                <h2 className="text-2xl font-display font-bold text-foreground">Crop Season</h2>
+                <p className="text-muted-foreground mt-2">When did you plant and how long is the growing season?</p>
+              </div>
+
+              {/* Start Date */}
+              <div className="space-y-2">
+                <Label htmlFor="cropStartDate">Planting Date</Label>
+                <Input
+                  id="cropStartDate"
+                  type="date"
+                  value={cropStartDate}
+                  onChange={(e) => setCropStartDate(e.target.value)}
+                  className="glass-input h-12"
+                />
+                <p className="text-xs text-muted-foreground">
+                  When did you sow/transplant this crop?
+                </p>
+              </div>
+
+              {/* Duration */}
+              <div className="space-y-2">
+                <Label htmlFor="cropDuration">Crop Duration (Days)</Label>
+                <Input
+                  id="cropDuration"
+                  type="number"
+                  placeholder="e.g., 90"
+                  value={cropDuration}
+                  onChange={(e) => setCropDuration(e.target.value)}
+                  className="glass-input h-12"
+                />
+
+                {/* Quick duration presets based on crop type */}
+                <div className="flex gap-2 mt-2">
+                  {[
+                    { label: 'Wheat', days: 120 },
+                    { label: 'Corn', days: 90 },
+                    { label: 'Tomato', days: 75 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      onClick={() => setCropDuration(preset.days.toString())}
+                      className={`
+                        px-3 py-1.5 rounded-lg text-xs font-medium
+                        ${cropDuration === preset.days.toString()
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                        }
+                      `}
+                    >
+                      {preset.label} ({preset.days}d)
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Summary Preview */}
+              {cropStartDate && cropDuration && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="glass-card p-4 border-green-500/30 bg-green-500/5"
+                >
+                  <p className="text-sm text-muted-foreground">Estimated Harvest</p>
+                  <p className="text-lg font-bold text-foreground">
+                    {(() => {
+                      const start = new Date(cropStartDate);
+                      start.setDate(start.getDate() + parseInt(cropDuration));
+                      return start.toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      });
+                    })()}
+                  </p>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
         </AnimatePresence>
 
         {/* Navigation Buttons */}
