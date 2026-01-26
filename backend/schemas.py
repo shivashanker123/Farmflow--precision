@@ -56,6 +56,27 @@ class FarmSettingsBase(BaseModel):
     pump_run_time: float = 0.0
     esp_ip: str = "192.168.4.1"
     rain_expected: bool = False
+    
+    # NEW: Crop Lifecycle
+    crop_duration: int = 90
+    crop_start_date: Optional[datetime] = None
+    today_water_used: float = 0.0
+    
+    # NEW: Sensor Health
+    last_sensor_reading: Optional[datetime] = None
+    sensor_health: str = "healthy"
+    manual_override_active: bool = False
+    
+    # NEW: Rainfall Tracking
+    rainfall_today: float = 0.0
+    last_rainfall_date: Optional[datetime] = None
+    rainfall_credited: float = 0.0
+    
+    # NEW: Impact Tracking
+    total_water_saved: float = 0.0
+    skipped_irrigation_count: int = 0
+    deficit_irrigation_count: int = 0
+    full_irrigation_count: int = 0
 
 
 class FarmSettingsCreate(FarmSettingsBase):
@@ -77,6 +98,27 @@ class FarmSettingsUpdate(BaseModel):
     pump_run_time: Optional[float] = None
     esp_ip: Optional[str] = None
     rain_expected: Optional[bool] = None
+    
+    # NEW: Crop Lifecycle
+    crop_duration: Optional[int] = None
+    crop_start_date: Optional[datetime] = None
+    today_water_used: Optional[float] = None
+    
+    # NEW: Sensor Health
+    last_sensor_reading: Optional[datetime] = None
+    sensor_health: Optional[str] = None
+    manual_override_active: Optional[bool] = None
+    
+    # NEW: Rainfall Tracking
+    rainfall_today: Optional[float] = None
+    last_rainfall_date: Optional[datetime] = None
+    rainfall_credited: Optional[float] = None
+    
+    # NEW: Impact Tracking
+    total_water_saved: Optional[float] = None
+    skipped_irrigation_count: Optional[int] = None
+    deficit_irrigation_count: Optional[int] = None
+    full_irrigation_count: Optional[int] = None
 
 
 class FarmSettingsResponse(FarmSettingsBase):

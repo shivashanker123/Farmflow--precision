@@ -384,6 +384,7 @@ export const FarmProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const data = await response.json();
         setFarmData(prev => ({
           ...prev,
+          // Core settings
           cropType: data.crop_type as FarmData['cropType'],
           fieldSize: data.field_size,
           tankCapacity: data.tank_capacity,
@@ -398,6 +399,27 @@ export const FarmProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           pumpRunTime: data.pump_run_time,
           espIP: data.esp_ip,
           rainExpected: data.rain_expected,
+
+          // NEW: Crop Lifecycle
+          cropDuration: data.crop_duration ?? prev.cropDuration,
+          cropStartDate: data.crop_start_date ?? prev.cropStartDate,
+          todayWaterUsed: data.today_water_used ?? prev.todayWaterUsed,
+
+          // NEW: Sensor Health
+          lastSensorReading: data.last_sensor_reading ?? prev.lastSensorReading,
+          sensorHealth: (data.sensor_health as SensorHealth) ?? prev.sensorHealth,
+          manualOverrideActive: data.manual_override_active ?? prev.manualOverrideActive,
+
+          // NEW: Rainfall Tracking
+          rainfallToday: data.rainfall_today ?? prev.rainfallToday,
+          lastRainfallDate: data.last_rainfall_date ?? prev.lastRainfallDate,
+          rainfallCredited: data.rainfall_credited ?? prev.rainfallCredited,
+
+          // NEW: Impact Tracking
+          totalWaterSaved: data.total_water_saved ?? prev.totalWaterSaved,
+          skippedIrrigationCount: data.skipped_irrigation_count ?? prev.skippedIrrigationCount,
+          deficitIrrigationCount: data.deficit_irrigation_count ?? prev.deficitIrrigationCount,
+          fullIrrigationCount: data.full_irrigation_count ?? prev.fullIrrigationCount,
         }));
         // If farm has been configured (field size > 0 AND crop type is set), mark as complete
         const isConfigured = data.field_size > 0 && data.crop_type && data.crop_type !== '';
