@@ -170,7 +170,6 @@ const Dashboard = () => {
 
   // Fetch weather function (extracted for reuse)
   const fetchWeather = useCallback(async (location: { lat: number; lng: number }) => {
-    console.log('Fetching weather for location:', location);
     setWeatherLoading(true);
     setWeatherError(null);
 
@@ -199,7 +198,6 @@ const Dashboard = () => {
 
       setWeatherData(newWeatherData);
       setWeatherLoaded(true); // Mark as loaded - stays true forever
-      console.log('Weather updated at:', new Date().toLocaleTimeString());
 
       // Check for rain conditions (mock prediction)
       const isRainy = current.weatherDesc[0].value.toLowerCase().includes('rain');
@@ -215,7 +213,6 @@ const Dashboard = () => {
   // Fetch weather data when location changes + refresh every 1 hour
   useEffect(() => {
     if (!userLocation) {
-      console.log('No user location set yet');
       return;
     }
 
@@ -226,7 +223,6 @@ const Dashboard = () => {
     // This ensures max 24 API calls per day, well within 100 free calls limit
     const REFRESH_INTERVAL = 60 * 60 * 1000; // 1 hour in milliseconds
     const intervalId = setInterval(() => {
-      console.log('Hourly weather refresh triggered');
       fetchWeather(userLocation);
     }, REFRESH_INTERVAL);
 
@@ -247,7 +243,7 @@ const Dashboard = () => {
           });
         },
         (error) => {
-          console.log('Auto-location failed:', error.message);
+          // Silently fail - user can set location manually
         }
       );
     }
@@ -365,7 +361,6 @@ const Dashboard = () => {
       clearTimeout(timeoutId);
     } catch (error) {
       // Continue with local state update even if ESP32 is unreachable
-      console.log('ESP32 command failed, updating local state');
     }
 
     // Update local state
