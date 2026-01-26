@@ -14,6 +14,7 @@ import DataSourceBadge from '@/components/farm/DataSourceBadge';
 import MotorControlCard from '@/components/farm/MotorControlCard';
 import SensorCard from '@/components/farm/SensorCard';
 import { useFarm } from '@/contexts/FarmContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useESP32Data, ESP32_CONFIG } from '@/hooks/useESP32Data';
 import { Calendar, Sun, Cloud, Thermometer, MapPin, Navigation, Edit3, Loader2, Check, X, CloudRain, CloudSnow, CloudLightning, CloudFog, Wifi, Settings } from 'lucide-react';
 import WeatherIcon from '@/components/ui/WeatherIcon';
@@ -82,6 +83,42 @@ const Dashboard = () => {
       }
     };
   }, [esp32Data.sensorData, esp32Data.isLive]);
+
+  // Get auth token for API calls
+  const { token } = useAuth();
+  const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+  // Fallback: Fetch latest sensor reading from database when ESP is offline
+  useEffect(() => {
+    const fetchLatestFromDB = async () => {
+      if (stableIsLive || !token) return; // Don't fetch if ESP is live
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/readings?limit=1`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.readings && data.readings.length > 0) {
+            const latest = data.readings[0];
+            // Convert raw analog (0-1023) to percentage if needed
+            const moisture = latest.soil_moisture > 100
+              ? Math.round((latest.soil_moisture / 1023) * 100)
+              : latest.soil_moisture;
+            updateSoilMoisture(moisture);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch sensor data from DB:', error);
+      }
+    };
+
+    fetchLatestFromDB();
+    // Poll every 30 seconds when offline
+    const interval = setInterval(fetchLatestFromDB, 30000);
+    return () => clearInterval(interval);
+  }, [stableIsLive, token]);
 
   // Location state
   const [locationPopoverOpen, setLocationPopoverOpen] = useState(false);
@@ -735,63 +772,40 @@ const Dashboard = () => {
               isActive={farmData.pumpActive}
             />
 
-            {/* Reliability Toggle */}
+            {/* Live Sensor Status */}
             <div className="glass-card p-6 hover-lift">
-              <h3 className="font-display font-bold text-lg text-foreground mb-4">Sensor Reliability</h3>
+              <h3 className="font-display font-bold text-lg text-foreground mb-4">Live Sensor Data</h3>
 
               <div className="space-y-4">
+                {/* Connection Status */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${farmData.sensorOnline ? 'bg-success animate-pulse-gentle' : 'bg-muted'}`} />
-                    <Label htmlFor="sensor-toggle">Sensor Status</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {farmData.sensorOnline ? 'Online' : 'Simulating Failure'}
+                    <div className={`w-3 h-3 rounded-full ${stableIsLive ? 'bg-success animate-pulse-gentle' : 'bg-warning'}`} />
+                    <span className="text-sm font-medium text-foreground">
+                      {stableIsLive ? 'Receiving Live Data' : 'Using Cached Data'}
                     </span>
-                    <Switch
-                      id="sensor-toggle"
-                      checked={!farmData.sensorOnline}
-                      onCheckedChange={toggleSensorOnline}
-                    />
                   </div>
+                  <span className={`text-xs px-2 py-1 rounded-full ${stableIsLive ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+                    {stableIsLive ? 'LIVE' : 'OFFLINE'}
+                  </span>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Toggle to simulate sensor failure mode
-                </p>
-              </div>
-            </div>
 
-            {/* Demo Controls */}
-            <div className="glass-card p-6 hover-lift">
-              <h3 className="font-display font-bold text-lg text-foreground mb-4">Demo Controls</h3>
-              <div className="space-y-4">
-                <div>
-                  <Label>Adjust Soil Moisture: {farmData.soilMoisture}%</Label>
-                  <Slider
-                    value={[farmData.soilMoisture]}
-                    onValueChange={(value) => updateSoilMoisture(value[0])}
-                    max={100}
-                    min={0}
-                    step={1}
-                    className="w-full mt-2"
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Drag to simulate soil moisture changes
+                {/* Current Reading */}
+                <div className="p-4 bg-muted/30 rounded-xl">
+                  <p className="text-xs text-muted-foreground mb-1">Current Soil Moisture</p>
+                  <p className="text-3xl font-display font-bold text-foreground">
+                    {farmData.soilMoisture}%
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {farmData.soilMoisture < 30 ? '⚠️ Low - Irrigation recommended' :
+                      farmData.soilMoisture > 70 ? '✅ Optimal - No irrigation needed' :
+                        '🟡 Moderate - Monitor closely'}
                   </p>
                 </div>
 
-                {/* Rain Toggle for Testing */}
-                <div className="flex items-center justify-between pt-4 border-t border-border/50">
-                  <div className="flex items-center gap-3">
-                    <CloudRain className="w-5 h-5 text-secondary" />
-                    <Label htmlFor="rain-toggle">Simulate Rain Expected</Label>
-                  </div>
-                  <Switch
-                    id="rain-toggle"
-                    checked={farmData.rainExpected}
-                    onCheckedChange={setRainExpected}
-                  />
+                {/* Data Source Info */}
+                <div className="text-xs text-muted-foreground pt-2 border-t border-border/50">
+                  <p>Source: {stableIsLive ? `ESP8266 @ ${farmData.espIP}` : 'Database fallback'}</p>
                 </div>
               </div>
             </div>
