@@ -5,25 +5,141 @@ export type SoilType = 'sandy' | 'clay' | 'loam' | 'black';
 export type IrrigationSource = 'tank' | 'borewell';
 export type DataSource = 'live' | 'fallback';
 
+/**
+ * CROP GROWTH STAGES
+ * Each stage has different water requirements and stress tolerance
+ * - initial: Seedling establishment (high tolerance to mild stress)
+ * - vegetative: Active growth phase (moderate tolerance)
+ * - flowering: Critical reproductive stage (MINIMAL tolerance - must irrigate)
+ * - maturity: Ripening phase (high tolerance, reducing water)
+ */
+export type CropStage = 'initial' | 'vegetative' | 'flowering' | 'maturity';
+
+/**
+ * SENSOR HEALTH STATUS
+ * - healthy: Receiving readings within normal intervals (<2 hours)
+ * - stale: No new reading for 2-6 hours (warning)
+ * - failed: No reading for 6+ hours (use fallback logic)
+ */
+export type SensorHealth = 'healthy' | 'stale' | 'failed';
+
+/**
+ * IRRIGATION RECOMMENDATION (Graduated Deficit Irrigation)
+ * Instead of simple on/off, we provide graduated recommendations:
+ * - 100%: Full irrigation (soil very dry, budget available)
+ * - 70%: Reduced irrigation (moderate stress, conserving water)
+ * - 40%: Deficit irrigation (budget low, non-critical stage)
+ * - 0%: Skip irrigation (soil wet or critical conservation)
+ */
+export interface IrrigationRecommendation {
+  action: 'irrigate' | 'skip';
+  intensity: 100 | 70 | 40 | 0;       // Percentage of full irrigation
+  reason: string;                      // Human-readable explanation
+  volume: number;                      // Recommended liters to apply
+}
+
+/**
+ * ADVISORY MESSAGE
+ * Explains WHY the system made a decision (builds farmer trust)
+ */
+export interface Advisory {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'action';
+  timestamp: Date;
+}
+
+/**
+ * IMPACT METRICS
+ * Track water savings vs traditional scheduled irrigation
+ * ASSUMPTION: Traditional = fixed daily schedule regardless of soil moisture
+ */
+export interface ImpactMetrics {
+  waterSavedLiters: number;           // Actual savings in liters
+  waterSavedPercent: number;          // Percentage saved vs traditional
+  skippedIrrigations: number;         // Count of times we skipped
+  deficitIrrigations: number;         // Count of partial irrigations
+  estimatedDaysExtended: number;      // Extra days of water due to savings
+}
+
+/**
+ * SEASONAL BUDGET
+ * Calculates water requirements for entire crop season
+ */
+export interface SeasonalBudget {
+  totalNeeded: number;                // Total liters needed for season
+  totalAvailable: number;             // Tank capacity or seasonal allotment
+  used: number;                        // Already consumed
+  remaining: number;                   // What's left
+  dailyQuota: number;                 // Allowed per day to last the season
+  daysRemaining: number;              // Crop days left
+  onTrack: boolean;                   // Are we within budget?
+}
+
 export interface FarmData {
+  // ===== BASIC FARM INFO =====
   cropType: 'wheat' | 'corn' | 'tomato';
-  fieldSize: number; // acres
-  tankCapacity: number; // liters (for tank)
-  dailyWaterNeed: number; // mm/day based on crop
-  usedWater: number; // liters used
-  soilMoisture: number; // percentage
-  temperature: number; // celsius
-  humidity: number; // percentage
-  sensorOnline: boolean;
-  pumpActive: boolean;
+  fieldSize: number;                   // acres
   farmerName: string;
   soilType: SoilType;
+
+  // ===== WATER SOURCE =====
   irrigationSource: IrrigationSource;
-  flowRate: number; // liters/hour (for borewell)
-  pumpRunTime: number; // hours pumped today
-  dataSource: DataSource; // live sensor or fallback API
-  espIP: string; // ESP32 IP address
-  rainExpected: boolean; // Mock rain prediction
+  tankCapacity: number;                // liters (for tank irrigation)
+  flowRate: number;                    // liters/hour (for borewell)
+
+  // ===== WATER USAGE TRACKING =====
+  dailyWaterNeed: number;              // mm/day based on crop (from agronomic tables)
+  usedWater: number;                   // liters used this season
+  todayWaterUsed: number;              // liters used today (resets daily)
+  pumpRunTime: number;                 // hours pumped today
+
+  // ===== CROP LIFECYCLE (NEW: Water Budget Engine) =====
+  /**
+   * ASSUMPTION: Crop duration is provided during setup wizard
+   * Common values: wheat=120, corn=90, tomato=75 days
+   */
+  cropDuration: number;                // Total days from sowing to harvest
+  cropStartDate: string | null;        // ISO date string when crop was planted
+
+  // ===== SENSOR DATA =====
+  soilMoisture: number;                // percentage (0-100)
+  temperature: number;                 // celsius
+  humidity: number;                    // percentage
+  sensorOnline: boolean;               // Is sensor connected?
+  dataSource: DataSource;              // 'live' from ESP or 'fallback' from DB
+  espIP: string;                       // ESP32/8266 IP address
+
+  // ===== SENSOR HEALTH (NEW: Fail-Safe Logic) =====
+  lastSensorReading: string | null;    // ISO timestamp of last reading
+  sensorHealth: SensorHealth;          // healthy/stale/failed
+  manualOverrideActive: boolean;       // Farmer override mode
+
+  // ===== RAINFALL TRACKING (NEW: Rainfall Awareness) =====
+  /**
+   * ASSUMPTION: Farmer manually records rainfall via "It Rained" button
+   * TODO: Future enhancement - integrate weather API for automatic detection
+   */
+  rainfallToday: number;               // mm of rain recorded today
+  lastRainfallDate: string | null;     // ISO date of last rainfall
+  rainfallCredited: number;            // mm credited to reduce irrigation
+
+  // ===== WEATHER =====
+  rainExpected: boolean;               // From weather forecast or manual toggle
+
+  // ===== PUMP CONTROL =====
+  pumpActive: boolean;                 // Is pump currently running?
+
+  // ===== IMPACT TRACKING (NEW: Water Savings Metrics) =====
+  /**
+   * Track decisions for impact visualization
+   * These accumulate over the season
+   */
+  totalWaterSaved: number;             // Cumulative liters saved
+  skippedIrrigationCount: number;      // Times we recommended skip
+  deficitIrrigationCount: number;      // Times we recommended partial
+  fullIrrigationCount: number;         // Times we recommended full
 }
 
 const CROP_WATER_NEEDS: Record<string, number> = {
@@ -33,24 +149,60 @@ const CROP_WATER_NEEDS: Record<string, number> = {
 };
 
 const DEFAULT_FARM_DATA: FarmData = {
+  // ===== BASIC FARM INFO =====
   cropType: 'corn',
   fieldSize: 10,
+  farmerName: 'Farmer',
+  soilType: 'loam',
+
+  // ===== WATER SOURCE =====
+  irrigationSource: 'tank',
   tankCapacity: 50000,
-  dailyWaterNeed: 7,
+  flowRate: 5000,
+
+  // ===== WATER USAGE TRACKING =====
+  dailyWaterNeed: 7,          // mm/day for corn (from CROP_WATER_NEEDS)
   usedWater: 0,
+  todayWaterUsed: 0,
+  pumpRunTime: 0,
+
+  // ===== CROP LIFECYCLE =====
+  /**
+   * DEFAULT: 90 days for corn
+   * ASSUMPTION: User will update during setup wizard
+   */
+  cropDuration: 90,
+  cropStartDate: null,        // Will be set when farmer starts season
+
+  // ===== SENSOR DATA =====
   soilMoisture: 65,
   temperature: 28,
   humidity: 65,
   sensorOnline: true,
-  pumpActive: false,
-  farmerName: 'Farmer',
-  soilType: 'loam',
-  irrigationSource: 'tank',
-  flowRate: 5000,
-  pumpRunTime: 0,
   dataSource: 'fallback',
   espIP: '192.168.4.1',
+
+  // ===== SENSOR HEALTH =====
+  lastSensorReading: null,
+  sensorHealth: 'healthy',
+  manualOverrideActive: false,
+
+  // ===== RAINFALL TRACKING =====
+  rainfallToday: 0,
+  lastRainfallDate: null,
+  rainfallCredited: 0,
+
+  // ===== WEATHER =====
   rainExpected: false,
+
+  // ===== PUMP CONTROL =====
+  pumpActive: false,
+
+  // ===== IMPACT TRACKING =====
+  totalWaterSaved: 0,
+  skippedIrrigationCount: 0,
+  deficitIrrigationCount: 0,
+  fullIrrigationCount: 0,
 };
 
 interface FarmSetupParams {
@@ -61,29 +213,116 @@ interface FarmSetupParams {
   irrigationSource: IrrigationSource;
   tankCapacity?: number;
   flowRate?: number;
+  cropDuration?: number;             // NEW: Days from sowing to harvest
+  cropStartDate?: string;            // NEW: ISO date string
 }
 
+/**
+ * FARM CONTEXT TYPE
+ * Exposes all state and functions to React components
+ */
 interface FarmContextType {
   farmData: FarmData;
   isSetupComplete: boolean;
   isLoading: boolean;
+
+  // ===== SETUP & SYNC =====
   completeFarmSetup: (params: FarmSetupParams) => void;
+  syncToBackend: () => Promise<void>;
+
+  // ===== SENSOR DATA UPDATES =====
   updateSoilMoisture: (value: number) => void;
   updateSensorData: (data: { soilMoisture?: number; temperature?: number; humidity?: number }) => void;
   setDataSource: (source: DataSource) => void;
+  setEspIP: (ip: string) => void;
+  toggleSensorOnline: () => void;
+
+  // ===== PUMP CONTROL =====
   togglePump: () => void;
   setPumpActive: (active: boolean) => void;
-  toggleSensorOnline: () => void;
+  isPumpLocked: () => { locked: boolean; reason: string | null };
+
+  // ===== WATER USAGE =====
   useWater: (liters: number) => void;
   addPumpRunTime: (hours: number) => void;
-  getWaterBudgetStatus: () => 'high' | 'medium' | 'low';
-  getRecommendation: () => 'full' | 'partial' | 'skip';
-  getRemainingDays: () => number;
   getTotalPumped: () => number;
+
+  // ===== WEATHER =====
   setRainExpected: (expected: boolean) => void;
-  setEspIP: (ip: string) => void;
-  isPumpLocked: () => { locked: boolean; reason: string | null };
-  syncToBackend: () => Promise<void>;
+  recordRainfall: (mm: number) => void;              // NEW: Log rainfall
+
+  // ===== WATER BUDGET ENGINE (SMART IRRIGATION) =====
+  /**
+   * Returns high/medium/low based on remaining water vs seasonal need
+   * EXISTING function - kept for backward compatibility
+   */
+  getWaterBudgetStatus: () => 'high' | 'medium' | 'low';
+
+  /**
+   * EXISTING: Simple recommendation (kept for backward compatibility)
+   */
+  getRecommendation: () => 'full' | 'partial' | 'skip';
+
+  /**
+   * NEW: Full seasonal budget breakdown
+   * Returns detailed budget info for WaterBudget page
+   */
+  getSeasonalBudget: () => SeasonalBudget;
+
+  /**
+   * NEW: Smart recommendation with graduated percentages
+   * Takes into account: soil moisture, water budget, crop stage, rainfall
+   */
+  getSmartRecommendation: () => IrrigationRecommendation;
+
+  /**
+   * EXISTING: Days of water remaining
+   */
+  getRemainingDays: () => number;
+
+  // ===== CROP STAGE AWARENESS =====
+  /**
+   * NEW: Calculate current crop growth stage based on days since planting
+   * Returns: initial | vegetative | flowering | maturity
+   */
+  getCropStage: () => CropStage;
+
+  /**
+   * NEW: Get stress tolerance for current stage (0.0 to 1.0)
+   * Lower = more critical (flowering is 0.1 = only 10% tolerance)
+   */
+  getStressTolerance: () => number;
+
+  // ===== ADVISORIES =====
+  /**
+   * NEW: Get current advisory messages explaining system decisions
+   * Displayed on dashboard to build farmer trust
+   */
+  getActiveAdvisories: () => Advisory[];
+
+  // ===== IMPACT METRICS =====
+  /**
+   * NEW: Calculate water savings vs traditional irrigation
+   */
+  getImpactMetrics: () => ImpactMetrics;
+
+  /**
+   * NEW: Log an irrigation event for impact tracking
+   */
+  logIrrigationEvent: (type: 'full' | 'partial' | 'skip', liters: number) => void;
+
+  // ===== SENSOR HEALTH =====
+  /**
+   * NEW: Check sensor health status
+   * Used for fail-safe logic and UI warnings
+   */
+  getSensorHealth: () => { status: SensorHealth; lastUpdate: Date | null; isStale: boolean };
+
+  /**
+   * NEW: Toggle manual override mode
+   * When active, farmer can bypass smart recommendations
+   */
+  toggleManualOverride: () => void;
 }
 
 const FarmContext = createContext<FarmContextType | undefined>(undefined);
@@ -395,29 +634,481 @@ export const FarmProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return Math.floor(remaining / dailyUsage);
   };
 
+  // ============================================================
+  // NEW SMART IRRIGATION FUNCTIONS
+  // ============================================================
+
+  /**
+   * RECORD RAINFALL
+   * Farmer manually logs rainfall via "It Rained" button
+   * 
+   * ASSUMPTION: 1mm of rain ≈ 1L/m² reduces irrigation need
+   * FORMULA: rainfallCredited = mm * efficiency (70% absorption)
+   * TODO: Future - integrate weather API for automatic detection
+   */
+  const recordRainfall = (mm: number): void => {
+    const RAINFALL_EFFICIENCY = 0.7; // 70% of rainfall is absorbed by soil
+    const creditedMm = mm * RAINFALL_EFFICIENCY;
+
+    setFarmData(prev => ({
+      ...prev,
+      rainfallToday: prev.rainfallToday + mm,
+      rainfallCredited: prev.rainfallCredited + creditedMm,
+      lastRainfallDate: new Date().toISOString(),
+    }));
+    scheduleSync();
+  };
+
+  /**
+   * GET SEASONAL BUDGET
+   * Calculates water requirements for entire crop season
+   * 
+   * FORMULA:
+   * - totalNeeded = dailyWaterNeed (mm) × fieldSize (acres) × 4047 (m²/acre) × cropDuration
+   * - dailyQuota = totalAvailable / daysRemaining
+   * 
+   * ASSUMPTION: Farmer has limited water (tank) or unlimited (borewell)
+   * For borewell: totalAvailable is estimated from sustainable pump hours/day
+   */
+  const getSeasonalBudget = (): SeasonalBudget => {
+    const now = new Date();
+    const startDate = farmData.cropStartDate ? new Date(farmData.cropStartDate) : now;
+    const daysSincePlanting = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysRemaining = Math.max(1, farmData.cropDuration - daysSincePlanting);
+
+    // Calculate total water needed for season
+    // Formula: mm/day × acres × 4047 m²/acre × days (liters, since 1mm = 1L/m²)
+    const SQMETERS_PER_ACRE = 4047;
+    const totalNeeded = farmData.dailyWaterNeed * farmData.fieldSize * SQMETERS_PER_ACRE * farmData.cropDuration;
+
+    // Available water depends on source
+    let totalAvailable: number;
+    if (farmData.irrigationSource === 'tank') {
+      totalAvailable = farmData.tankCapacity;
+    } else {
+      // Borewell: estimate 4 hours/day × flowRate × remaining days
+      // ASSUMPTION: Sustainable pumping is ~4 hours per day
+      const SUSTAINABLE_PUMP_HOURS = 4;
+      totalAvailable = farmData.flowRate * SUSTAINABLE_PUMP_HOURS * daysRemaining;
+    }
+
+    const used = farmData.usedWater;
+    const remaining = Math.max(0, totalAvailable - used);
+    const dailyQuota = daysRemaining > 0 ? remaining / daysRemaining : 0;
+
+    // Check if on track: used should be proportional to days elapsed
+    const expectedUsage = (daysSincePlanting / farmData.cropDuration) * totalNeeded;
+    const onTrack = used <= expectedUsage * 1.1; // Allow 10% buffer
+
+    return {
+      totalNeeded: Math.round(totalNeeded),
+      totalAvailable: Math.round(totalAvailable),
+      used: Math.round(used),
+      remaining: Math.round(remaining),
+      dailyQuota: Math.round(dailyQuota),
+      daysRemaining,
+      onTrack,
+    };
+  };
+
+  /**
+   * GET CROP STAGE
+   * Determines current growth stage based on days since planting
+   * 
+   * CROP STAGE PERCENTAGES (typical):
+   * - initial: 0-20% of duration (seedling establishment)
+   * - vegetative: 20-55% (active growth)
+   * - flowering: 55-80% (reproductive, CRITICAL for water)
+   * - maturity: 80-100% (ripening, reducing water)
+   * 
+   * ASSUMPTION: All crops follow similar patterns (simplified)
+   * TODO: Add crop-specific stage configurations
+   */
+  const getCropStage = (): CropStage => {
+    if (!farmData.cropStartDate) return 'vegetative'; // Default if no start date
+
+    const now = new Date();
+    const startDate = new Date(farmData.cropStartDate);
+    const daysSincePlanting = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const progress = daysSincePlanting / farmData.cropDuration;
+
+    if (progress < 0.2) return 'initial';
+    if (progress < 0.55) return 'vegetative';
+    if (progress < 0.8) return 'flowering';
+    return 'maturity';
+  };
+
+  /**
+   * GET STRESS TOLERANCE
+   * Returns how much water stress the crop can tolerate at current stage
+   * 
+   * VALUES:
+   * - 0.7 (70%): High tolerance - can skip irrigation
+   * - 0.5 (50%): Moderate tolerance
+   * - 0.1 (10%): Critical - MUST irrigate (flowering stage)
+   * - 0.6 (60%): Reducing water for maturity
+   */
+  const getStressTolerance = (): number => {
+    const STRESS_TOLERANCE_BY_STAGE: Record<CropStage, number> = {
+      initial: 0.7,      // Seedlings can tolerate mild stress
+      vegetative: 0.5,   // Moderate tolerance
+      flowering: 0.1,    // CRITICAL - minimal tolerance
+      maturity: 0.6,     // Can reduce water for ripening
+    };
+
+    const stage = getCropStage();
+    return STRESS_TOLERANCE_BY_STAGE[stage];
+  };
+
+  /**
+   * GET SMART RECOMMENDATION
+   * Graduated deficit irrigation based on multiple factors
+   * 
+   * DECISION TREE:
+   * 1. If soil moisture >= 70% → SKIP (already wet)
+   * 2. If rain expected → SKIP (wait for rain)
+   * 3. If flowering stage + moisture < 50% → FULL (critical period)
+   * 4. If budget is high → based on moisture level
+   * 5. If budget is medium → REDUCED (70%)
+   * 6. If budget is low → DEFICIT (40%)
+   * 7. If budget is critical → SKIP (conserve)
+   * 
+   * ASSUMPTION: Thresholds are simplified for demo
+   * TODO: Add soil type adjustments (sandy drains faster)
+   */
+  const getSmartRecommendation = (): IrrigationRecommendation => {
+    const budget = getSeasonalBudget();
+    const stage = getCropStage();
+    const stressTolerance = getStressTolerance();
+    const moisture = farmData.soilMoisture;
+
+    // Calculate base irrigation volume
+    // Formula: dailyNeed × fieldSize × 4047 (liters)
+    const SQMETERS_PER_ACRE = 4047;
+    const fullVolume = farmData.dailyWaterNeed * farmData.fieldSize * SQMETERS_PER_ACRE;
+
+    // Decision 1: Already wet
+    if (moisture >= 70) {
+      return {
+        action: 'skip',
+        intensity: 0,
+        reason: `Soil moisture at ${moisture}% - already optimal`,
+        volume: 0,
+      };
+    }
+
+    // Decision 2: Rain expected
+    if (farmData.rainExpected) {
+      return {
+        action: 'skip',
+        intensity: 0,
+        reason: 'Rain expected - saving water',
+        volume: 0,
+      };
+    }
+
+    // Decision 3: Flowering stage is critical
+    if (stage === 'flowering' && moisture < 50) {
+      return {
+        action: 'irrigate',
+        intensity: 100,
+        reason: '⚠️ Critical flowering stage - full irrigation required',
+        volume: Math.round(fullVolume),
+      };
+    }
+
+    // Decision 4-7: Based on budget status
+    const budgetRatio = budget.remaining / budget.totalAvailable;
+
+    if (budgetRatio > 0.5) {
+      // High budget
+      if (moisture < 30) {
+        return {
+          action: 'irrigate',
+          intensity: 100,
+          reason: 'Low moisture + high budget - full irrigation',
+          volume: Math.round(fullVolume),
+        };
+      } else {
+        return {
+          action: 'irrigate',
+          intensity: 70,
+          reason: 'Moderate moisture - reduced irrigation',
+          volume: Math.round(fullVolume * 0.7),
+        };
+      }
+    } else if (budgetRatio > 0.2) {
+      // Medium budget
+      return {
+        action: 'irrigate',
+        intensity: 70,
+        reason: 'Conserving water - 70% irrigation',
+        volume: Math.round(fullVolume * 0.7),
+      };
+    } else if (budgetRatio > 0.1) {
+      // Low budget
+      return {
+        action: 'irrigate',
+        intensity: 40,
+        reason: '⚠️ Low water budget - deficit irrigation (40%)',
+        volume: Math.round(fullVolume * 0.4),
+      };
+    } else {
+      // Critical - conserve
+      return {
+        action: 'skip',
+        intensity: 0,
+        reason: '🚨 Critical water shortage - skipping to preserve supply',
+        volume: 0,
+      };
+    }
+  };
+
+  /**
+   * GET ACTIVE ADVISORIES
+   * Generates context-aware messages explaining system decisions
+   * Displayed on dashboard to build farmer trust
+   */
+  const getActiveAdvisories = (): Advisory[] => {
+    const advisories: Advisory[] = [];
+    const now = new Date();
+
+    // Advisory 1: Irrigation recommendation
+    const rec = getSmartRecommendation();
+    advisories.push({
+      id: 'irrigation-rec',
+      title: rec.action === 'irrigate' ? 'Irrigation Recommended' : 'Irrigation Skipped',
+      message: rec.reason,
+      type: rec.action === 'irrigate' ? 'action' : 'info',
+      timestamp: now,
+    });
+
+    // Advisory 2: Crop stage
+    const stage = getCropStage();
+    if (stage === 'flowering') {
+      advisories.push({
+        id: 'flowering-warning',
+        title: 'Critical Growth Stage',
+        message: 'Crop is in flowering stage - water stress will impact yield significantly',
+        type: 'warning',
+        timestamp: now,
+      });
+    }
+
+    // Advisory 3: Budget status
+    const budget = getSeasonalBudget();
+    if (!budget.onTrack) {
+      advisories.push({
+        id: 'budget-warning',
+        title: 'Over Budget',
+        message: `Water usage is higher than planned. ${budget.daysRemaining} days remaining with ${Math.round(budget.remaining)} liters.`,
+        type: 'warning',
+        timestamp: now,
+      });
+    }
+
+    // Advisory 4: Sensor health
+    const health = getSensorHealth();
+    if (health.status !== 'healthy') {
+      advisories.push({
+        id: 'sensor-health',
+        title: health.status === 'stale' ? 'Sensor Data Stale' : 'Sensor Offline',
+        message: health.status === 'stale'
+          ? 'No new readings for 2+ hours. Using last known values.'
+          : 'Sensor offline for 6+ hours. Using formula-based fallback.',
+        type: 'warning',
+        timestamp: now,
+      });
+    }
+
+    // Advisory 5: Recent rainfall
+    if (farmData.rainfallToday > 0) {
+      advisories.push({
+        id: 'rainfall',
+        title: 'Rainfall Recorded',
+        message: `${farmData.rainfallToday}mm of rain today. Irrigation needs reduced.`,
+        type: 'success',
+        timestamp: now,
+      });
+    }
+
+    return advisories;
+  };
+
+  /**
+   * GET IMPACT METRICS
+   * Calculate water savings vs traditional scheduled irrigation
+   * 
+   * ASSUMPTION: Traditional = fixed daily irrigation regardless of moisture
+   * FORMULA: Saved = Traditional - Actual
+   */
+  const getImpactMetrics = (): ImpactMetrics => {
+    const now = new Date();
+    const startDate = farmData.cropStartDate ? new Date(farmData.cropStartDate) : now;
+    const daysSincePlanting = Math.max(1, Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+    // Traditional usage: daily water need × field size × days
+    const SQMETERS_PER_ACRE = 4047;
+    const traditionalDailyUsage = farmData.dailyWaterNeed * farmData.fieldSize * SQMETERS_PER_ACRE;
+    const traditionalTotal = traditionalDailyUsage * daysSincePlanting;
+
+    // Actual usage
+    const actualTotal = farmData.usedWater;
+
+    // Savings
+    const savedLiters = Math.max(0, traditionalTotal - actualTotal);
+    const savedPercent = traditionalTotal > 0 ? (savedLiters / traditionalTotal) * 100 : 0;
+
+    // Days extended: how many extra days of water we have due to savings
+    const dailyQuota = getSeasonalBudget().dailyQuota;
+    const daysExtended = dailyQuota > 0 ? Math.floor(savedLiters / dailyQuota) : 0;
+
+    return {
+      waterSavedLiters: Math.round(savedLiters),
+      waterSavedPercent: Math.round(savedPercent),
+      skippedIrrigations: farmData.skippedIrrigationCount,
+      deficitIrrigations: farmData.deficitIrrigationCount,
+      estimatedDaysExtended: daysExtended,
+    };
+  };
+
+  /**
+   * LOG IRRIGATION EVENT
+   * Called when pump is turned on/off to track impact metrics
+   */
+  const logIrrigationEvent = (type: 'full' | 'partial' | 'skip', liters: number): void => {
+    setFarmData(prev => {
+      const updates = { ...prev };
+
+      switch (type) {
+        case 'full':
+          updates.fullIrrigationCount = prev.fullIrrigationCount + 1;
+          updates.usedWater = prev.usedWater + liters;
+          break;
+        case 'partial':
+          updates.deficitIrrigationCount = prev.deficitIrrigationCount + 1;
+          updates.usedWater = prev.usedWater + liters;
+          // Track water saved (full - partial)
+          const SQMETERS_PER_ACRE = 4047;
+          const fullVolume = prev.dailyWaterNeed * prev.fieldSize * SQMETERS_PER_ACRE;
+          updates.totalWaterSaved = prev.totalWaterSaved + (fullVolume - liters);
+          break;
+        case 'skip':
+          updates.skippedIrrigationCount = prev.skippedIrrigationCount + 1;
+          // Track water saved (full volume)
+          const fullVol = prev.dailyWaterNeed * prev.fieldSize * 4047;
+          updates.totalWaterSaved = prev.totalWaterSaved + fullVol;
+          break;
+      }
+
+      return updates;
+    });
+    scheduleSync();
+  };
+
+  /**
+   * GET SENSOR HEALTH
+   * Determines sensor status based on time since last reading
+   * 
+   * THRESHOLDS:
+   * - healthy: <2 hours since last reading
+   * - stale: 2-6 hours (warning)
+   * - failed: >6 hours (use fallback)
+   */
+  const getSensorHealth = (): { status: SensorHealth; lastUpdate: Date | null; isStale: boolean } => {
+    if (!farmData.lastSensorReading) {
+      // No reading yet - assume healthy if sensor is marked online
+      return {
+        status: farmData.sensorOnline ? 'healthy' : 'failed',
+        lastUpdate: null,
+        isStale: !farmData.sensorOnline,
+      };
+    }
+
+    const lastReading = new Date(farmData.lastSensorReading);
+    const now = new Date();
+    const hoursSinceReading = (now.getTime() - lastReading.getTime()) / (1000 * 60 * 60);
+
+    let status: SensorHealth;
+    if (hoursSinceReading < 2) {
+      status = 'healthy';
+    } else if (hoursSinceReading < 6) {
+      status = 'stale';
+    } else {
+      status = 'failed';
+    }
+
+    return {
+      status,
+      lastUpdate: lastReading,
+      isStale: status !== 'healthy',
+    };
+  };
+
+  /**
+   * TOGGLE MANUAL OVERRIDE
+   * When active, farmer can bypass smart recommendations
+   * Used when farmer knows conditions better than sensors
+   */
+  const toggleManualOverride = (): void => {
+    setFarmData(prev => ({
+      ...prev,
+      manualOverrideActive: !prev.manualOverrideActive,
+    }));
+    scheduleSync();
+  };
+
   return (
     <FarmContext.Provider
       value={{
         farmData,
         isSetupComplete,
         isLoading,
+
+        // Setup & Sync
         completeFarmSetup,
+        syncToBackend,
+
+        // Sensor Data
         updateSoilMoisture,
         updateSensorData,
         setDataSource,
+        setEspIP,
+        toggleSensorOnline,
+
+        // Pump Control
         togglePump,
         setPumpActive,
-        toggleSensorOnline,
+        isPumpLocked,
+
+        // Water Usage
         useWater,
         addPumpRunTime,
+        getTotalPumped,
+
+        // Weather
+        setRainExpected,
+        recordRainfall,
+
+        // Water Budget Engine
         getWaterBudgetStatus,
         getRecommendation,
+        getSeasonalBudget,
+        getSmartRecommendation,
         getRemainingDays,
-        getTotalPumped,
-        setRainExpected,
-        setEspIP,
-        isPumpLocked,
-        syncToBackend,
+
+        // Crop Stage
+        getCropStage,
+        getStressTolerance,
+
+        // Advisories & Metrics
+        getActiveAdvisories,
+        getImpactMetrics,
+        logIrrigationEvent,
+
+        // Sensor Health
+        getSensorHealth,
+        toggleManualOverride,
       }}
     >
       {children}
