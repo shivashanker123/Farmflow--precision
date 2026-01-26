@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import WaterTankVisualization from '@/components/farm/WaterTankVisualization';
 import BorewellMonitor from '@/components/farm/BorewellMonitor';
+import ImpactDashboard from '@/components/farm/ImpactDashboard';
+import AdvisoryPanel from '@/components/farm/AdvisoryPanel';
 import { useFarm } from '@/contexts/FarmContext';
 import { TrendingUp, Droplets, Target, Calendar, Leaf, AlertTriangle, Check } from 'lucide-react';
 
@@ -24,6 +26,7 @@ const WaterBudget = () => {
     getSeasonalBudget,
     getCropStage,
     getImpactMetrics,
+    getActiveAdvisories,
   } = useFarm();
 
   const budgetStatus = getWaterBudgetStatus();
@@ -33,6 +36,7 @@ const WaterBudget = () => {
   const seasonalBudget = getSeasonalBudget();
   const cropStage = getCropStage();
   const impactMetrics = getImpactMetrics();
+  const advisories = getActiveAdvisories();
 
   // Calculate values based on irrigation source
   const remaining = isBorewell
@@ -159,8 +163,8 @@ const WaterBudget = () => {
                 animate={{ width: `${Math.min(100, (seasonalBudget.used / seasonalBudget.totalAvailable) * 100)}%` }}
                 transition={{ duration: 1, ease: 'easeOut' }}
                 className={`h-full rounded-full ${seasonalBudget.onTrack
-                    ? 'bg-gradient-to-r from-primary to-primary/70'
-                    : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                  ? 'bg-gradient-to-r from-primary to-primary/70'
+                  : 'bg-gradient-to-r from-amber-500 to-orange-500'
                   }`}
               />
             </div>
@@ -397,6 +401,27 @@ const WaterBudget = () => {
             </div>
           </motion.div>
         </div>
+
+        {/* Water Savings Impact - Moved from Dashboard */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <ImpactDashboard metrics={impactMetrics} />
+        </motion.div>
+
+        {/* Advisory Messages - Moved from Dashboard */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+        >
+          <AdvisoryPanel
+            advisories={advisories}
+            maxVisible={5}
+          />
+        </motion.div>
       </div>
     </DashboardLayout>
   );

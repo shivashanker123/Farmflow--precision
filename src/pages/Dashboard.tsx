@@ -13,12 +13,9 @@ import SwipeToIrrigate from '@/components/farm/SwipeToIrrigate';
 import DataSourceBadge from '@/components/farm/DataSourceBadge';
 import MotorControlCard from '@/components/farm/MotorControlCard';
 import SensorCard from '@/components/farm/SensorCard';
-// NEW: Smart Irrigation Components
-import AdvisoryPanel from '@/components/farm/AdvisoryPanel';
-import CropStageIndicator from '@/components/farm/CropStageIndicator';
+// Smart Irrigation Components (remaining on Dashboard)
 import SmartRecommendationCard from '@/components/farm/SmartRecommendationCard';
 import RainfallButton from '@/components/farm/RainfallButton';
-import ImpactDashboard from '@/components/farm/ImpactDashboard';
 import { useFarm } from '@/contexts/FarmContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useESP32Data, ESP32_CONFIG } from '@/hooks/useESP32Data';
@@ -51,25 +48,16 @@ const Dashboard = () => {
     setRainExpected,
     setEspIP,
     isPumpLocked,
-    // NEW: Smart irrigation functions
+    // Smart irrigation functions (remaining on Dashboard)
     getSmartRecommendation,
-    getCropStage,
-    getStressTolerance,
-    getActiveAdvisories,
     getSeasonalBudget,
-    getImpactMetrics,
     recordRainfall,
     logIrrigationEvent,
   } = useFarm();
 
   const recommendation = getRecommendation();
-  // NEW: Smart recommendation with graduated percentages
   const smartRecommendation = getSmartRecommendation();
-  const cropStage = getCropStage();
-  const stressTolerance = getStressTolerance();
-  const advisories = getActiveAdvisories();
   const seasonalBudget = getSeasonalBudget();
-  const impactMetrics = getImpactMetrics();
   const cropDay = seasonalBudget.daysRemaining;
   const pumpLockStatus = isPumpLocked();
 
@@ -798,72 +786,19 @@ const Dashboard = () => {
               isManualOverride={farmData.manualOverrideActive}
             />
 
-            {/* NEW: Crop Stage Indicator */}
-            <CropStageIndicator
-              currentStage={cropStage}
-              stressTolerance={stressTolerance}
-              daysRemaining={cropDay}
-              cropType={farmData.cropType}
-            />
-
-            {/* NEW: Advisory Panel */}
-            <AdvisoryPanel
-              advisories={advisories}
-              maxVisible={3}
-            />
-
-            {/* Swipe to Irrigate (kept for quick action) */}
-            <SwipeToIrrigate
-              onActivate={togglePump}
-              isActive={farmData.pumpActive}
-            />
-
-            {/* NEW: Rainfall Button */}
-            <div className="flex justify-end">
-              <RainfallButton
-                onRecordRainfall={recordRainfall}
-                todayRainfall={farmData.rainfallToday}
-              />
-            </div>
-
-            {/* NEW: Impact Dashboard - Water Savings */}
-            <ImpactDashboard metrics={impactMetrics} />
-
-            {/* Live Sensor Status */}
-            <div className="glass-card p-6 hover-lift">
-              <h3 className="font-display font-bold text-lg text-foreground mb-4">Live Sensor Data</h3>
-
-              <div className="space-y-4">
-                {/* Connection Status */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${stableIsLive ? 'bg-success animate-pulse-gentle' : 'bg-warning'}`} />
-                    <span className="text-sm font-medium text-foreground">
-                      {stableIsLive ? 'Receiving Live Data' : 'Using Cached Data'}
-                    </span>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${stableIsLive ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
-                    {stableIsLive ? 'LIVE' : 'OFFLINE'}
-                  </span>
-                </div>
-
-                {/* Current Reading */}
-                <div className="p-4 bg-muted/30 rounded-xl">
-                  <p className="text-xs text-muted-foreground mb-1">Current Soil Moisture</p>
-                  <p className="text-3xl font-display font-bold text-foreground">
-                    {farmData.soilMoisture}%
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {farmData.soilMoisture < 30 ? '⚠️ Low - Irrigation recommended' :
-                      farmData.soilMoisture > 70 ? '✅ Optimal - No irrigation needed' :
-                        '🟡 Moderate - Monitor closely'}
-                  </p>
-                </div>
-
-                {/* Data Source Info */}
-                <div className="text-xs text-muted-foreground pt-2 border-t border-border/50">
-                  <p>Source: {stableIsLive ? `ESP8266 @ ${farmData.espIP}` : 'Database fallback'}</p>
-                </div>
+            {/* Swipe to Irrigate + Rainfall Button (Inline Actions) */}
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch">
+              <div className="flex-1">
+                <SwipeToIrrigate
+                  onActivate={togglePump}
+                  isActive={farmData.pumpActive}
+                />
+              </div>
+              <div className="flex items-center">
+                <RainfallButton
+                  onRecordRainfall={recordRainfall}
+                  todayRainfall={farmData.rainfallToday}
+                />
               </div>
             </div>
           </motion.div>

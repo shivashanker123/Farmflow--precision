@@ -4,13 +4,15 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Leaf, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { useFarm } from '@/contexts/FarmContext';
 import ChatWidget from '@/components/farm/ChatWidget';
+import CropStageIndicator from '@/components/farm/CropStageIndicator';
 
 const CropDoctor = () => {
-  const { farmData, getCropStage, getSeasonalBudget } = useFarm();
+  const { farmData, getCropStage, getSeasonalBudget, getStressTolerance } = useFarm();
 
   // Get dynamic crop data
   const cropStage = getCropStage();
   const seasonalBudget = getSeasonalBudget();
+  const stressTolerance = getStressTolerance();
   const daysSincePlanting = seasonalBudget.totalNeeded > 0
     ? farmData.cropDuration - seasonalBudget.daysRemaining
     : 0;
@@ -67,6 +69,20 @@ const CropDoctor = () => {
           <p className="text-muted-foreground mt-1">
             AI-powered crop health analysis and recommendations
           </p>
+        </motion.div>
+
+        {/* Crop Stage Indicator - Moved from Dashboard */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <CropStageIndicator
+            currentStage={cropStage}
+            stressTolerance={stressTolerance}
+            daysRemaining={daysSincePlanting}
+            cropType={farmData.cropType}
+          />
         </motion.div>
 
         {/* Health Status Card */}
