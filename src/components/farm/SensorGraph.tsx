@@ -30,6 +30,15 @@ interface SensorGraphProps {
     refreshKey?: number;
 }
 
+// Helper: Convert raw analog (0-1023) or percentage (0-100) to consistent percentage
+const normalizeToPercent = (value: number): number => {
+    if (value > 100) {
+        // Raw analog value from ESP8266 (0-1023)
+        return Math.round((value / 1023) * 100);
+    }
+    return value; // Already percentage
+};
+
 const SensorGraph: React.FC<SensorGraphProps> = ({ refreshKey }) => {
     const { token } = useAuth();
     const [readings, setReadings] = useState<Reading[]>([]);
@@ -114,7 +123,7 @@ const SensorGraph: React.FC<SensorGraphProps> = ({ refreshKey }) => {
             const date = new Date(r.created_at);
             const hourKey = date.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
             const existing = hourlyData.get(hourKey) || [];
-            existing.push(r.soil_moisture);
+            existing.push(normalizeToPercent(r.soil_moisture)); // Normalize to percentage
             hourlyData.set(hourKey, existing);
         });
 
@@ -128,9 +137,9 @@ const SensorGraph: React.FC<SensorGraphProps> = ({ refreshKey }) => {
     const stats = useMemo(() => {
         if (readings.length === 0) return null;
 
-        const values = readings.map(r => r.soil_moisture);
-        const latest = readings[0]?.soil_moisture || 0;
-        const previous = readings[1]?.soil_moisture || latest;
+        const values = readings.map(r => normalizeToPercent(r.soil_moisture)); // Normalize
+        const latest = normalizeToPercent(readings[0]?.soil_moisture || 0);
+        const previous = normalizeToPercent(readings[1]?.soil_moisture || latest);
         const trend = latest - previous;
 
         return {
@@ -285,10 +294,10 @@ const SensorGraph: React.FC<SensorGraphProps> = ({ refreshKey }) => {
                             >
                                 <div
                                     className={`w-full rounded-t-lg transition-opacity ${data.value < 30
-                                            ? 'bg-gradient-to-t from-red-500 to-red-400'
-                                            : data.value < 50
-                                                ? 'bg-gradient-to-t from-amber-500 to-amber-400'
-                                                : 'bg-gradient-to-t from-green-500 to-emerald-400'
+                                        ? 'bg-gradient-to-t from-red-500 to-red-400'
+                                        : data.value < 50
+                                            ? 'bg-gradient-to-t from-amber-500 to-amber-400'
+                                            : 'bg-gradient-to-t from-green-500 to-emerald-400'
                                         } opacity-80 hover:opacity-100`}
                                     style={{ height: '100%' }}
                                 />
